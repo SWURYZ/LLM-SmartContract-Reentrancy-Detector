@@ -1,0 +1,11 @@
+{
+  "total": 1,
+  "tp": 1,
+  "tn": 0,
+  "fp": 0,
+  "fn": 0,
+  "accuracy": 1.0,
+  "false_positive_rate": 0.0,
+  "false_negative_rate": 0.0,
+  "profile": "crop_slither_cot"
+}

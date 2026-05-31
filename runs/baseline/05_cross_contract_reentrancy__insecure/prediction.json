@@ -1,0 +1,24 @@
+{
+  "sample": {
+    "sample_id": "05_cross_contract_reentrancy__insecure",
+    "category": "cross_contract_reentrancy",
+    "variant": "insecure",
+    "label": true,
+    "main_file": "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\05_cross_contract_reentrancy\\InsecureMoonVault.sol",
+    "support_files": [
+      "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\05_cross_contract_reentrancy\\Dependencies.sol"
+    ]
+  },
+  "prediction": {
+    "is_vulnerable": true,
+    "vulnerability_type": "cross_contract_reentrancy",
+    "vulnerable_functions": [
+      "withdrawAll"
+    ],
+    "attack_path": "发现外部交互发生在关键状态更新之前，存在被回调重入的可能。",
+    "confidence": 0.75,
+    "reasoning": "主合约文件: D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\05_cross_contract_reentrancy\\InsecureMoonVault.sol\n辅助文件数量: 0\n识别到的风险符号数量: 3\n符号=InsecureMoonVault.deposit | 类型=function | 原因=external_calls | ETH发送=False | 外部调用=moonToken.mint( | 写状态=moonToken, success | 交互后更新状态=False\n符号=InsecureMoonVault.withdrawAll | 类型=function | 原因=can_send_eth,external_calls | ETH发送=True | 外部调用=.calls*{, moonToken.burnAccount( | 写状态=moonToken, balance, success | 交互后更新状态=True\n符号=InsecureMoonVault.getUserBalance | 类型=function | 原因=external_calls | ETH发送=False | 外部调用=moonToken.balanceOf( | 写状态=moonToken | 交互后更新状态=False",
+    "raw_response": "heuristic-backend"
+  },
+  "correct": true
+}

@@ -1,0 +1,8 @@
+{
+  "name": "baseline_raw",
+  "template_name": "baseline_prompt.txt",
+  "use_raw_context": true,
+  "include_static_summary": false,
+  "include_support_files": false,
+  "description": "Pure LLM baseline over full contract text."
+}

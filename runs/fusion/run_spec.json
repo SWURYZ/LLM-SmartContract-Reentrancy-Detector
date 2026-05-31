@@ -1,0 +1,8 @@
+{
+  "name": "fusion",
+  "template_name": "fusion_prompt.txt",
+  "use_raw_context": false,
+  "include_static_summary": true,
+  "include_support_files": true,
+  "description": "Full fusion: trimming + static summary + CoT + multi-contract context."
+}

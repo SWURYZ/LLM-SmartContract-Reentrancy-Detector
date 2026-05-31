@@ -1,0 +1,25 @@
+{
+  "sample": {
+    "sample_id": "03_reentrancy_via_modifier__insecure",
+    "category": "reentrancy_via_modifier",
+    "variant": "insecure",
+    "label": true,
+    "main_file": "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\03_reentrancy_via_modifier\\InsecureAirdrop.sol",
+    "support_files": [
+      "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\03_reentrancy_via_modifier\\Dependencies.sol"
+    ]
+  },
+  "prediction": {
+    "is_vulnerable": true,
+    "vulnerability_type": "reentrancy_via_modifier",
+    "vulnerable_functions": [
+      "receiveAirdrop",
+      "canReceiveAirdrop"
+    ],
+    "attack_path": "发现外部交互发生在关键状态更新之前，存在被回调重入的可能。",
+    "confidence": 0.75,
+    "reasoning": "主合约文件: D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\03_reentrancy_via_modifier\\InsecureAirdrop.sol\n辅助文件数量: 1\n识别到的风险符号数量: 2\n符号=InsecureAirdrop.receiveAirdrop | 类型=function | 原因=external_calls | ETH发送=False | 外部调用=).canReceiveAirdrop( | 写状态=userBalances, receivedAirdrops, airdropAmount | 交互后更新状态=False\n符号=InsecureAirdrop.canReceiveAirdrop | 类型=modifier | 原因=external_calls | ETH发送=False | 外部调用=).canReceiveAirdrop( | 写状态=- | 交互后更新状态=False",
+    "raw_response": "heuristic-backend"
+  },
+  "correct": true
+}

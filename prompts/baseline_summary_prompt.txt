@@ -1,0 +1,28 @@
+你是智能合约审计专家。请根据给定的 Solidity 上下文和静态分析摘要，判断目标代码是否存在重入漏洞。
+
+样本编号: {sample_id}
+漏洞类别候选: {category}
+主文件: {main_file}
+辅助文件: {support_files}
+
+静态分析摘要：
+{static_summary}
+
+请重点关注：
+1. 是否存在外部调用、转账或可导致控制流离开当前合约的交互。
+2. 这些交互之后，是否还会更新关键状态变量。
+3. 如果没有漏洞，也请说明为什么当前实现能够避免重入。
+
+代码上下文如下：
+
+{cropped_context}
+
+请只输出一个 JSON 对象，不要输出额外解释：
+{{
+  "is_vulnerable": true,
+  "vulnerability_type": "standard_reentrancy | reentrancy_via_modifier | cross_function_reentrancy | cross_contract_reentrancy | none",
+  "vulnerable_functions": ["functionName"],
+  "attack_path": "一句话描述攻击路径",
+  "confidence": 0.0,
+  "reasoning": "简要理由"
+}}

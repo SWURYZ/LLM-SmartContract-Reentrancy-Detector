@@ -1,0 +1,8 @@
+{
+  "name": "crop_slither_cot",
+  "template_name": "cot_reentrancy_paper.txt",
+  "use_raw_context": false,
+  "include_static_summary": true,
+  "include_support_files": false,
+  "description": "Add CoT prompt engineering on top of trimming and static summary."
+}

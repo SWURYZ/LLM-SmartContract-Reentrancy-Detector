@@ -1,0 +1,8 @@
+{
+  "name": "crop_only",
+  "template_name": "baseline_prompt_paper.txt",
+  "use_raw_context": false,
+  "include_static_summary": false,
+  "include_support_files": false,
+  "description": "Add code trimming only."
+}

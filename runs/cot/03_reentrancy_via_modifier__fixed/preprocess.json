@@ -1,0 +1,53 @@
+{
+  "main_file": "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\03_reentrancy_via_modifier\\FixedAirdrop.sol",
+  "auxiliary_files": [],
+  "slither_used": false,
+  "fallback_used": true,
+  "warnings": [],
+  "findings": [
+    {
+      "contract_name": "FixedAirdrop",
+      "symbol_name": "receiveAirdrop",
+      "symbol_type": "function",
+      "source_code": "function receiveAirdrop() external noReentrant canReceiveAirdrop neverReceiveAirdrop {\n        // Mint Airdrop\n        userBalances[msg.sender] += airdropAmount;\n        receivedAirdrops[msg.sender] = true;\n    }\n\n\n    modifier canReceiveAirdrop() {\n        // If the caller is a smart contract, check if it can receive an airdrop\n        if (_isContract(msg.sender)) {\n            // In this example, the _isContract() function is used for checking \n            // an airdrop compatibility only, not checking for any security aspects\n            require(\n                IAirdropReceiver(msg.sender).canReceiveAirdrop(), \n                \"Receiver cannot receive an airdrop\"\n            );\n        }\n        _;\n    }\n\n\n    modifier neverReceiveAirdrop {\n        require(!receivedAirdrops[msg.sender], \"You already received an Airdrop\");\n        _;\n    }",
+      "reasons": [
+        "external_calls"
+      ],
+      "external_calls": [
+        ").canReceiveAirdrop("
+      ],
+      "state_reads": [],
+      "state_writes": [
+        "userBalances",
+        "receivedAirdrops",
+        "airdropAmount"
+      ],
+      "can_send_eth": false,
+      "post_interaction_state_update": false
+    },
+    {
+      "contract_name": "FixedAirdrop",
+      "symbol_name": "canReceiveAirdrop",
+      "symbol_type": "modifier",
+      "source_code": "\n    modifier canReceiveAirdrop() {\n        // If the caller is a smart contract, check if it can receive an airdrop\n        if (_isContract(msg.sender)) {\n            // In this example, the _isContract() function is used for checking \n            // an airdrop compatibility only, not checking for any security aspects\n            require(\n                IAirdropReceiver(msg.sender).canReceiveAirdrop(), \n                \"Receiver cannot receive an airdrop\"\n            );\n        }\n        _;\n    }",
+      "reasons": [
+        "external_calls"
+      ],
+      "external_calls": [
+        ").canReceiveAirdrop("
+      ],
+      "state_reads": [],
+      "state_writes": [],
+      "can_send_eth": false,
+      "post_interaction_state_update": false
+    }
+  ],
+  "static_summary": "主合约文件: D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\03_reentrancy_via_modifier\\FixedAirdrop.sol\n辅助文件数量: 0\n识别到的风险符号数量: 2\n符号=FixedAirdrop.receiveAirdrop | 类型=function | 原因=external_calls | ETH发送=False | 外部调用=).canReceiveAirdrop( | 写状态=userBalances, receivedAirdrops, airdropAmount | 交互后更新状态=False\n符号=FixedAirdrop.canReceiveAirdrop | 类型=modifier | 原因=external_calls | ETH发送=False | 外部调用=).canReceiveAirdrop( | 写状态=- | 交互后更新状态=False",
+  "cropped_context": "// Main contract: D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\03_reentrancy_via_modifier\\FixedAirdrop.sol\n\ncontract FixedAirdrop is ReentrancyGuard {\n    mapping (address => uint256) private userBalances;\n    mapping (address => bool) private receivedAirdrops;\n\n    uint256 public immutable airdropAmount;\n\n// Risk-focused slice: receiveAirdrop\n\nfunction receiveAirdrop() external noReentrant canReceiveAirdrop neverReceiveAirdrop {\n        // Mint Airdrop\n        userBalances[msg.sender] += airdropAmount;\n        receivedAirdrops[msg.sender] = true;\n    }\n\n\n    modifier canReceiveAirdrop() {\n        // If the caller is a smart contract, check if it can receive an airdrop\n        if (_isContract(msg.sender)) {\n            // In this example, the _isContract() function is used for checking \n            // an airdrop compatibility only, not checking for any security aspects\n            require(\n                IAirdropReceiver(msg.sender).canReceiveAirdrop(), \n                \"Receiver cannot receive an airdrop\"\n            );\n        }\n        _;\n    }\n\n\n    modifier neverReceiveAirdrop {\n        require(!receivedAirdrops[msg.sender], \"You already received an Airdrop\");\n        _;\n    }\n\n// Risk-focused slice: canReceiveAirdrop\n\nmodifier canReceiveAirdrop() {\n        // If the caller is a smart contract, check if it can receive an airdrop\n        if (_isContract(msg.sender)) {\n            // In this example, the _isContract() function is used for checking \n            // an airdrop compatibility only, not checking for any security aspects\n            require(\n                IAirdropReceiver(msg.sender).canReceiveAirdrop(), \n                \"Receiver cannot receive an airdrop\"\n            );\n        }\n        _;\n    }",
+  "source_bundle": [
+    {
+      "path": "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\03_reentrancy_via_modifier\\FixedAirdrop.sol",
+      "content": "// SPDX-License-Identifier: BSL-1.0 (Boost Software License 1.0)\n\n//-------------------------------------------------------------------------------------//\n// Copyright (c) 2022 - 2023 serial-coder: Phuwanai Thummavet (mr.thummavet@gmail.com) //\n//-------------------------------------------------------------------------------------//\n\n// For more info, please refer to my article:\n//  - On Medium: https://medium.com/valixconsulting/solidity-smart-contract-security-by-example-03-reentrancy-via-modifier-fba6b1d8ff81\n//  - On serial-coder.com: https://www.serial-coder.com/post/solidity-smart-contract-security-by-example-03-reentrancy-via-modifier/\n\npragma solidity 0.8.13;\n\nimport \"./Dependencies.sol\";\n\nabstract contract ReentrancyGuard {\n    bool internal locked;\n\n    modifier noReentrant() {\n        require(!locked, \"No re-entrancy\");\n        locked = true;\n        _;\n        locked = false;\n    }\n}\n\ncontract FixedAirdrop is ReentrancyGuard {\n    mapping (address => uint256) private userBalances;\n    mapping (address => bool) private receivedAirdrops;\n\n    uint256 public immutable airdropAmount;\n\n    constructor(uint256 _airdropAmount) {\n        airdropAmount = _airdropAmount;\n    }\n\n    // FIX: 1. Apply mutex lock (noReentrant) as the first modifier\n    // FIX: 2. Call canReceiveAirdrop before neverReceiveAirdrop\n    function receiveAirdrop() external noReentrant canReceiveAirdrop neverReceiveAirdrop {\n        // Mint Airdrop\n        userBalances[msg.sender] += airdropAmount;\n        receivedAirdrops[msg.sender] = true;\n    }\n\n    modifier neverReceiveAirdrop {\n        require(!receivedAirdrops[msg.sender], \"You already received an Airdrop\");\n        _;\n    }\n\n    // In this example, the _isContract() function is used for checking \n    // an airdrop compatibility only, not checking for any security aspects\n    function _isContract(address _account) internal view returns (bool) {\n        // It is unsafe to assume that an address for which this function returns \n        // false is an externally-owned account (EOA) and not a contract\n        uint256 size;\n        assembly {\n            // There is a contract size check bypass issue\n            // But, it is not the scope of this example though\n            size := extcodesize(_account)\n        }\n        return size > 0;\n    }\n\n    modifier canReceiveAirdrop() {\n        // If the caller is a smart contract, check if it can receive an airdrop\n        if (_isContract(msg.sender)) {\n            // In this example, the _isContract() function is used for checking \n            // an airdrop compatibility only, not checking for any security aspects\n            require(\n                IAirdropReceiver(msg.sender).canReceiveAirdrop(), \n                \"Receiver cannot receive an airdrop\"\n            );\n        }\n        _;\n    }\n\n    function getUserBalance(address _user) external view returns (uint256) {\n        return userBalances[_user];\n    }\n\n    function hasReceivedAirdrop(address _user) external view returns (bool) {\n        return receivedAirdrops[_user];\n    }\n}"
+    }
+  ]
+}

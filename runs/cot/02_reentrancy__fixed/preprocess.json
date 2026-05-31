@@ -1,0 +1,36 @@
+{
+  "main_file": "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\02_reentrancy\\FixedEtherVault.sol",
+  "auxiliary_files": [],
+  "slither_used": false,
+  "fallback_used": true,
+  "warnings": [],
+  "findings": [
+    {
+      "contract_name": "FixedEtherVault",
+      "symbol_name": "withdrawAll",
+      "symbol_type": "function",
+      "source_code": "function withdrawAll() external noReentrant {  // FIX: Apply mutex lock\n        uint256 balance = getUserBalance(msg.sender);\n        require(balance > 0, \"Insufficient balance\");  // Check\n\n        // FIX: Apply checks-effects-interactions pattern\n        userBalances[msg.sender] = 0;  // Effect\n\n        (bool success, ) = msg.sender.call{value: balance}(\"\");  // Interaction\n        require(success, \"Failed to send Ether\");\n    }",
+      "reasons": [
+        "can_send_eth"
+      ],
+      "external_calls": [
+        ".calls*{"
+      ],
+      "state_reads": [],
+      "state_writes": [
+        "userBalances",
+        "balance"
+      ],
+      "can_send_eth": true,
+      "post_interaction_state_update": false
+    }
+  ],
+  "static_summary": "主合约文件: D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\02_reentrancy\\FixedEtherVault.sol\n辅助文件数量: 0\n识别到的风险符号数量: 1\n符号=FixedEtherVault.withdrawAll | 类型=function | 原因=can_send_eth | ETH发送=True | 外部调用=.calls*{ | 写状态=userBalances, balance | 交互后更新状态=False",
+  "cropped_context": "// Main contract: D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\02_reentrancy\\FixedEtherVault.sol\n\ncontract FixedEtherVault is ReentrancyGuard {\n    mapping (address => uint256) private userBalances;\n\n// Risk-focused slice: withdrawAll\n\nfunction withdrawAll() external noReentrant {  // FIX: Apply mutex lock\n        uint256 balance = getUserBalance(msg.sender);\n        require(balance > 0, \"Insufficient balance\");  // Check\n\n        // FIX: Apply checks-effects-interactions pattern\n        userBalances[msg.sender] = 0;  // Effect\n\n        (bool success, ) = msg.sender.call{value: balance}(\"\");  // Interaction\n        require(success, \"Failed to send Ether\");\n    }",
+  "source_bundle": [
+    {
+      "path": "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\02_reentrancy\\FixedEtherVault.sol",
+      "content": "// SPDX-License-Identifier: BSL-1.0 (Boost Software License 1.0)\n\n//-------------------------------------------------------------------------------------//\n// Copyright (c) 2022 - 2023 serial-coder: Phuwanai Thummavet (mr.thummavet@gmail.com) //\n//-------------------------------------------------------------------------------------//\n\n// For more info, please refer to my article:\n//  - On Medium: https://medium.com/valixconsulting/solidity-smart-contract-security-by-example-02-reentrancy-b0c08cfcd555\n//  - On serial-coder.com: https://www.serial-coder.com/post/solidity-smart-contract-security-by-example-02-reentrancy/\n\npragma solidity 0.8.13;\n\nabstract contract ReentrancyGuard {\n    bool internal locked;\n\n    modifier noReentrant() {\n        require(!locked, \"No re-entrancy\");\n        locked = true;\n        _;\n        locked = false;\n    }\n}\n\ncontract FixedEtherVault is ReentrancyGuard {\n    mapping (address => uint256) private userBalances;\n\n    function deposit() external payable {\n        userBalances[msg.sender] += msg.value;\n    }\n\n    function withdrawAll() external noReentrant {  // FIX: Apply mutex lock\n        uint256 balance = getUserBalance(msg.sender);\n        require(balance > 0, \"Insufficient balance\");  // Check\n\n        // FIX: Apply checks-effects-interactions pattern\n        userBalances[msg.sender] = 0;  // Effect\n\n        (bool success, ) = msg.sender.call{value: balance}(\"\");  // Interaction\n        require(success, \"Failed to send Ether\");\n    }\n\n    function getBalance() external view returns (uint256) {\n        return address(this).balance;\n    }\n\n    function getUserBalance(address _user) public view returns (uint256) {\n        return userBalances[_user];\n    }\n}"
+    }
+  ]
+}

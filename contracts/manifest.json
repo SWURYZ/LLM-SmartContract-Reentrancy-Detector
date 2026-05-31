@@ -1,0 +1,78 @@
+[
+  {
+    "sample_id": "02_reentrancy__insecure",
+    "category": "standard_reentrancy",
+    "variant": "insecure",
+    "label": true,
+    "main_file": "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\02_reentrancy\\InsecureEtherVault.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "02_reentrancy__fixed",
+    "category": "standard_reentrancy",
+    "variant": "fixed",
+    "label": false,
+    "main_file": "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\02_reentrancy\\FixedEtherVault.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "03_reentrancy_via_modifier__insecure",
+    "category": "reentrancy_via_modifier",
+    "variant": "insecure",
+    "label": true,
+    "main_file": "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\03_reentrancy_via_modifier\\InsecureAirdrop.sol",
+    "support_files": [
+      "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\03_reentrancy_via_modifier\\Dependencies.sol"
+    ]
+  },
+  {
+    "sample_id": "03_reentrancy_via_modifier__fixed",
+    "category": "reentrancy_via_modifier",
+    "variant": "fixed",
+    "label": false,
+    "main_file": "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\03_reentrancy_via_modifier\\FixedAirdrop.sol",
+    "support_files": [
+      "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\03_reentrancy_via_modifier\\Dependencies.sol"
+    ]
+  },
+  {
+    "sample_id": "04_cross_function_reentrancy__insecure",
+    "category": "cross_function_reentrancy",
+    "variant": "insecure",
+    "label": true,
+    "main_file": "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\04_cross_function_reentrancy\\InsecureEtherVault.sol",
+    "support_files": [
+      "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\04_cross_function_reentrancy\\Dependencies.sol"
+    ]
+  },
+  {
+    "sample_id": "04_cross_function_reentrancy__fixed",
+    "category": "cross_function_reentrancy",
+    "variant": "fixed",
+    "label": false,
+    "main_file": "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\04_cross_function_reentrancy\\FixedEtherVault.sol",
+    "support_files": [
+      "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\04_cross_function_reentrancy\\Dependencies.sol"
+    ]
+  },
+  {
+    "sample_id": "05_cross_contract_reentrancy__insecure",
+    "category": "cross_contract_reentrancy",
+    "variant": "insecure",
+    "label": true,
+    "main_file": "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\05_cross_contract_reentrancy\\InsecureMoonVault.sol",
+    "support_files": [
+      "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\05_cross_contract_reentrancy\\Dependencies.sol"
+    ]
+  },
+  {
+    "sample_id": "05_cross_contract_reentrancy__fixed",
+    "category": "cross_contract_reentrancy",
+    "variant": "fixed",
+    "label": false,
+    "main_file": "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\05_cross_contract_reentrancy\\FixedMoonVault.sol",
+    "support_files": [
+      "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\05_cross_contract_reentrancy\\Dependencies.sol"
+    ]
+  }
+]
