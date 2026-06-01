@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -10,6 +11,17 @@ try:
     from slither import Slither  # type: ignore
 except Exception:  # pragma: no cover - optional dependency
     Slither = None
+
+# solc-select 二进制路径映射，用于自动匹配合约的 pragma 版本
+_SOLC_BINARIES: dict[str, str] = {}
+_solc_artifacts = Path.home() / ".solc-select" / "artifacts"
+if _solc_artifacts.exists():
+    for _d in _solc_artifacts.iterdir():
+        if _d.is_dir():
+            _ver = _d.name.replace("solc-", "")
+            _bin = _d / f"solc-{_ver}"
+            if _bin.exists():
+                _SOLC_BINARIES[_ver] = str(_bin)
 
 
 ETH_CALL_PATTERNS = (
@@ -167,8 +179,34 @@ def write_preprocess_result(result: PreprocessResult, output_path: Path | str) -
     )
 
 
+def _detect_solc_binary(main_path: Path) -> str:
+    """根据合约 pragma 版本自动匹配 solc 二进制路径。"""
+    try:
+        content = main_path.read_text(encoding="utf-8", errors="ignore")
+        m = re.search(r'pragma\s+solidity\s+[\^~>=]*\s*(\d+\.\d+\.\d+)', content)
+        if m:
+            req_ver = m.group(1)
+            # 精确匹配
+            if req_ver in _SOLC_BINARIES:
+                return _SOLC_BINARIES[req_ver]
+            # 同主版本号兼容匹配（如 ^0.4.19 匹配 0.4.26）
+            major_minor = ".".join(req_ver.split(".")[:2])
+            candidates = sorted(
+                [(v, b) for v, b in _SOLC_BINARIES.items() if v.startswith(major_minor)],
+                key=lambda x: x[0], reverse=True
+            )
+            if candidates:
+                return candidates[0][1]  # 取最新兼容版本
+    except Exception:
+        pass
+    return "solc"
+
+
 def _collect_slither_findings(main_path: Path) -> list[StaticFinding]:
-    slither = Slither(str(main_path))
+    # 自动检测合约 pragma 版本，匹配对应的 solc 二进制
+    solc_binary = _detect_solc_binary(main_path)
+
+    slither = Slither(str(main_path), solc=solc_binary)
     findings: list[StaticFinding] = []
     for contract in getattr(slither, "contracts", []):
         for function in getattr(contract, "functions", []):
