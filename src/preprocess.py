@@ -9,8 +9,10 @@ from typing import Iterable, Sequence
 
 try:
     from slither import Slither  # type: ignore
-except Exception:  # pragma: no cover - optional dependency
+except Exception as exc:  # pragma: no cover - optional dependency
     Slither = None
+    import sys
+    print(f"[preprocess] Slither 导入失败（将全程使用启发式分析）: {exc}", file=sys.stderr)
 
 # solc-select 二进制路径映射，用于自动匹配合约的 pragma 版本
 _SOLC_BINARIES: dict[str, str] = {}
@@ -131,6 +133,7 @@ def preprocess_contract(
     warnings: list[str] = []
     findings: list[StaticFinding] = []
     slither_used = False
+    slither_failed = False
     fallback_used = False
 
     if Slither is not None:
@@ -138,12 +141,16 @@ def preprocess_contract(
             findings = _collect_slither_findings(main_path)
             slither_used = True
         except Exception as exc:  # pragma: no cover - runtime environment specific
-            warnings.append(f"Slither unavailable for {main_path.name}: {exc}")
+            slither_failed = True
+            warnings.append(f"Slither failed for {main_path.name}: {exc}")
 
-    if not findings:
-        findings = _collect_heuristic_findings(main_path)
-        fallback_used = True
+    # 只有当 Slither 失败时才启用启发式回退。
+    # Slither 成功但返回空 findings 是有效信号（合约无风险函数），不回退。
+    if slither_failed or Slither is None:
         if not findings:
+            findings = _collect_heuristic_findings(main_path)
+            fallback_used = True
+    if not findings and not slither_used:
             warnings.append(
                 "No risky function was identified; the full main contract is kept as context."
             )
@@ -197,8 +204,9 @@ def _detect_solc_binary(main_path: Path) -> str:
             )
             if candidates:
                 return candidates[0][1]  # 取最新兼容版本
-    except Exception:
-        pass
+    except Exception as exc:
+        import sys
+        print(f"[preprocess] solc 版本检测失败 ({main_path.name}): {exc}", file=sys.stderr)
     return "solc"
 
 
@@ -755,7 +763,9 @@ def _safe_bool_call(instance: object, method_name: str) -> bool:
     if callable(method):
         try:
             return bool(method())
-        except Exception:
+        except Exception as exc:
+            import sys
+            print(f"[preprocess] Slither.{method_name}() 调用失败: {exc}", file=sys.stderr)
             return False
     return bool(method)
 
