@@ -21,6 +21,11 @@
 
 {cropped_context}
 
+完成判定后，请进行自我审查：
+1. 如果 confidence 较低（<0.8），指出缺少了哪些信息会导致置信度不足。
+2. 如果换一个角度重新审阅代码，你的判定是否会不同？为什么？
+3. 本次分析任务中，Prompt 是否存在表述不清或信息不足的地方？
+
 请只输出一个 JSON 对象，不要输出额外解释：
 {{
   "is_vulnerable": true,
@@ -28,5 +33,6 @@
   "vulnerable_functions": ["functionName"],
   "attack_path": "一句话描述攻击路径",
   "confidence": 0.0,
-  "reasoning": "简要理由"
+  "reasoning": "简要理由",
+  "self_inspection": "简洁回答上述3个审查问题"
 }}
