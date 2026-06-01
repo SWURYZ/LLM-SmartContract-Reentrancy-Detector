@@ -52,7 +52,7 @@
 
 ```
 第 1 轮：消融实验（5 个 profile × repeat=3）
-  → 发现：FPR 过高（0.458），fixed 变体 100% 误判
+  → 发现：FPR 过高（0.458），fixed 变体识别率仅 0.542，安全上下文丢失
 
 第 2 轮：slice_v1 + Guard 注入（4 项规则优化）
   → 发现：FPR 降至 0.375，切片剥离安全上下文
@@ -154,7 +154,7 @@
 
 ### Prompt 规则注入
 
-**设计动机**：slice_v1 实验中 fixed 变体被 100% 误判——`03_modifier_fixed` 3/3 FP（confidence=0.90），`05_cross_contract_fixed` 3/3 FP（confidence=0.95）。根源在于切片剥离了 ReentrancyGuard 继承链，模型只能看到"危险的调用模式"而看不到"保护措施"。
+**设计动机**：slice_v1 + Guard 实验中，modifier 重入和跨合约重入的 fixed 变体被全部误判——`03_modifier_fixed` 3/3 FP（confidence=0.90），`05_cross_contract_fixed` 3/3 FP（confidence=0.95）。根源在于切片剥离了 ReentrancyGuard 继承链，模型只能看到"危险的调用模式"而看不到"保护措施"。
 
 注入的 Prompt 规则核心内容：
 - 如果函数使用了 `nonReentrant` / `noReentrant` 修饰符，说明已受重入锁保护 → **这不是漏洞**。
@@ -301,12 +301,12 @@
 
 ### 4.5 分场景指标与 fixed 变体误判演变
 
-| 场景 | 消融最优 | slice+Prompt | 说明 |
+| 场景 | 消融最优（来源） | slice_v1+Prompt | 说明 |
 |---|---|---|---|
-| standard_reentrancy | 0.972 | 0.931 | 经典模式几乎完美识别 |
-| cross_function | 0.833 | 1.000 | Prompt 规则后零误报 |
-| reentrancy_via_modifier | 0.800 | 0.800 | modifier 执行顺序混淆，FP 顽固 |
-| cross_contract | 0.722 | 0.556 | crosschain 样本模式偏离典型重入 |
+| standard_reentrancy | 0.972（baseline_raw） | 0.931 | 经典模式几乎完美识别 |
+| cross_function | 0.833（crop_only） | 1.000 | Prompt 规则后 zero FP |
+| reentrancy_via_modifier | 0.800（多方案持平） | 0.800 | modifier 执行顺序混淆，FP 顽固 |
+| cross_contract | 0.722（crop_only） | 0.556 | crosschain 样本模式偏离典型重入 |
 
 **fixed 变体误判演变**：消融 baseline_raw: 9/24 → Guard 注入: 9/24 → Prompt 规则: **6/24（↓33%）** → 绕过检测: 8/24（略回升）。顽固 FP 始终来自 modifier_fixed（modifier 执行顺序不被模型理解）和 crosschain_fixed（跨链 Bridge 调用不匹配重入模板）。
 
