@@ -1,0 +1,37 @@
+{
+  "source_roots": [
+    "/opt/uestc/external/solidity-security-by-example",
+    "/opt/uestc/external/smartbugs-curated",
+    "/opt/uestc/external/extra_reentrancy_pocs",
+    "/opt/uestc/external/crosschain_reentrancy_pairs"
+  ],
+  "sample_count": 41,
+  "positive_count": 33,
+  "negative_count": 8,
+  "by_category": {
+    "standard_reentrancy": 24,
+    "reentrancy_via_modifier": 5,
+    "cross_function_reentrancy": 6,
+    "cross_contract_reentrancy": 6
+  },
+  "by_variant": {
+    "insecure": 8,
+    "fixed": 8,
+    "vulnerable": 25
+  },
+  "by_source": {
+    "serial_coder": 8,
+    "extra_reentrancy_pocs": 2,
+    "crosschain_reentrancy_pairs": 8,
+    "smartbugs_curated": 23
+  },
+  "by_label_source": {
+    "paired_variant": 16,
+    "curated_annotation": 25
+  },
+  "optimization_notes": [
+    "当前基准由两类数据源组成：serial-coder 的配对 fixed/insecure 样本，以及 SmartBugs curated 的 vulnerable-only 样本。",
+    "统一标签规则保持为 label=True 表示重入漏洞，label=False 表示安全/修复变体；额外的 label_source 字段记录标签来源。",
+    "扩容时建议继续补充带 fixed 对照的数据源，或在评估阶段按 source 分层报告，以免类别不平衡掩盖结果。"
+  ]
+}

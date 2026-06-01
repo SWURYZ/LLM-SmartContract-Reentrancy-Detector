@@ -1,0 +1,771 @@
+{
+  "run_id": "deepseek-promptfixed-r3-20260601",
+  "repeat_count": 3,
+  "run_config": {
+    "run_id": "deepseek-promptfixed-r3-20260601",
+    "repeat": 3,
+    "backend": "openai",
+    "model": "deepseek-chat",
+    "base_url": null,
+    "profiles": [
+      "reentrancy_slice_v1",
+      "crop_slither"
+    ],
+    "max_samples": 0,
+    "project_root": "/opt/uestc",
+    "source_root": "/opt/uestc/external/solidity-security-by-example",
+    "curated_reentrancy": true,
+    "curated_source_root": "/opt/uestc/external/smartbugs-curated",
+    "extra_source_roots": [
+      "/opt/uestc/external/extra_reentrancy_pocs",
+      "/opt/uestc/external/crosschain_reentrancy_pairs"
+    ],
+    "contracts_root": "/opt/uestc/contracts",
+    "output_root": "/opt/uestc/runs/deepseek-promptfixed-r3-20260601"
+  },
+  "repeats": [
+    {
+      "repeat_index": 1,
+      "profiles": [
+        {
+          "profile": "reentrancy_slice_v1",
+          "metrics": {
+            "total": 41,
+            "tp": 29,
+            "tn": 6,
+            "fp": 2,
+            "fn": 4,
+            "accuracy": 0.8537,
+            "false_positive_rate": 0.25,
+            "false_negative_rate": 0.1212,
+            "profile": "reentrancy_slice_v1",
+            "repeat_index": 1
+          },
+          "error_samples": 6
+        },
+        {
+          "profile": "crop_slither",
+          "metrics": {
+            "total": 41,
+            "tp": 31,
+            "tn": 5,
+            "fp": 3,
+            "fn": 2,
+            "accuracy": 0.878,
+            "false_positive_rate": 0.375,
+            "false_negative_rate": 0.0606,
+            "profile": "crop_slither",
+            "repeat_index": 1
+          },
+          "error_samples": 5
+        }
+      ]
+    },
+    {
+      "repeat_index": 2,
+      "profiles": [
+        {
+          "profile": "reentrancy_slice_v1",
+          "metrics": {
+            "total": 41,
+            "tp": 31,
+            "tn": 6,
+            "fp": 2,
+            "fn": 2,
+            "accuracy": 0.9024,
+            "false_positive_rate": 0.25,
+            "false_negative_rate": 0.0606,
+            "profile": "reentrancy_slice_v1",
+            "repeat_index": 2
+          },
+          "error_samples": 4
+        },
+        {
+          "profile": "crop_slither",
+          "metrics": {
+            "total": 41,
+            "tp": 30,
+            "tn": 6,
+            "fp": 2,
+            "fn": 3,
+            "accuracy": 0.878,
+            "false_positive_rate": 0.25,
+            "false_negative_rate": 0.0909,
+            "profile": "crop_slither",
+            "repeat_index": 2
+          },
+          "error_samples": 5
+        }
+      ]
+    },
+    {
+      "repeat_index": 3,
+      "profiles": [
+        {
+          "profile": "reentrancy_slice_v1",
+          "metrics": {
+            "total": 41,
+            "tp": 29,
+            "tn": 6,
+            "fp": 2,
+            "fn": 4,
+            "accuracy": 0.8537,
+            "false_positive_rate": 0.25,
+            "false_negative_rate": 0.1212,
+            "profile": "reentrancy_slice_v1",
+            "repeat_index": 3
+          },
+          "error_samples": 6
+        },
+        {
+          "profile": "crop_slither",
+          "metrics": {
+            "total": 41,
+            "tp": 30,
+            "tn": 6,
+            "fp": 2,
+            "fn": 3,
+            "accuracy": 0.878,
+            "false_positive_rate": 0.25,
+            "false_negative_rate": 0.0909,
+            "profile": "crop_slither",
+            "repeat_index": 3
+          },
+          "error_samples": 5
+        }
+      ]
+    }
+  ],
+  "profiles": [
+    {
+      "profile": "reentrancy_slice_v1",
+      "repeat_count": 3,
+      "repeat_metrics": [
+        {
+          "total": 41,
+          "tp": 29,
+          "tn": 6,
+          "fp": 2,
+          "fn": 4,
+          "accuracy": 0.8537,
+          "false_positive_rate": 0.25,
+          "false_negative_rate": 0.1212,
+          "profile": "reentrancy_slice_v1",
+          "repeat_index": 1
+        },
+        {
+          "total": 41,
+          "tp": 31,
+          "tn": 6,
+          "fp": 2,
+          "fn": 2,
+          "accuracy": 0.9024,
+          "false_positive_rate": 0.25,
+          "false_negative_rate": 0.0606,
+          "profile": "reentrancy_slice_v1",
+          "repeat_index": 2
+        },
+        {
+          "total": 41,
+          "tp": 29,
+          "tn": 6,
+          "fp": 2,
+          "fn": 4,
+          "accuracy": 0.8537,
+          "false_positive_rate": 0.25,
+          "false_negative_rate": 0.1212,
+          "profile": "reentrancy_slice_v1",
+          "repeat_index": 3
+        }
+      ],
+      "aggregate_metrics": {
+        "repeat_count": 3,
+        "mean": {
+          "total": 41,
+          "tp": 29.6667,
+          "tn": 6,
+          "fp": 2,
+          "fn": 3.3333,
+          "accuracy": 0.8699,
+          "false_positive_rate": 0.25,
+          "false_negative_rate": 0.101
+        },
+        "std": {
+          "total": 0.0,
+          "tp": 0.9428,
+          "tn": 0.0,
+          "fp": 0.0,
+          "fn": 0.9428,
+          "accuracy": 0.023,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 0.0286
+        },
+        "min": {
+          "total": 41,
+          "tp": 29,
+          "tn": 6,
+          "fp": 2,
+          "fn": 2,
+          "accuracy": 0.8537,
+          "false_positive_rate": 0.25,
+          "false_negative_rate": 0.0606
+        },
+        "max": {
+          "total": 41,
+          "tp": 31,
+          "tn": 6,
+          "fp": 2,
+          "fn": 4,
+          "accuracy": 0.9024,
+          "false_positive_rate": 0.25,
+          "false_negative_rate": 0.1212
+        }
+      },
+      "scenario_metrics": {
+        "by_category": {
+          "standard_reentrancy": {
+            "total": 72,
+            "tp": 61,
+            "tn": 6,
+            "fp": 0,
+            "fn": 5,
+            "accuracy": 0.9306,
+            "false_positive_rate": 0.0,
+            "false_negative_rate": 0.0758
+          },
+          "reentrancy_via_modifier": {
+            "total": 15,
+            "tp": 9,
+            "tn": 3,
+            "fp": 3,
+            "fn": 0,
+            "accuracy": 0.8,
+            "false_positive_rate": 0.5,
+            "false_negative_rate": 0.0
+          },
+          "cross_function_reentrancy": {
+            "total": 18,
+            "tp": 12,
+            "tn": 6,
+            "fp": 0,
+            "fn": 0,
+            "accuracy": 1.0,
+            "false_positive_rate": 0.0,
+            "false_negative_rate": 0.0
+          },
+          "cross_contract_reentrancy": {
+            "total": 18,
+            "tp": 7,
+            "tn": 3,
+            "fp": 3,
+            "fn": 5,
+            "accuracy": 0.5556,
+            "false_positive_rate": 0.5,
+            "false_negative_rate": 0.4167
+          }
+        },
+        "by_variant": {
+          "insecure": {
+            "total": 24,
+            "tp": 14,
+            "tn": 0,
+            "fp": 0,
+            "fn": 10,
+            "accuracy": 0.5833,
+            "false_positive_rate": 0.0,
+            "false_negative_rate": 0.4167
+          },
+          "fixed": {
+            "total": 24,
+            "tp": 0,
+            "tn": 18,
+            "fp": 6,
+            "fn": 0,
+            "accuracy": 0.75,
+            "false_positive_rate": 0.25,
+            "false_negative_rate": 0.0
+          },
+          "vulnerable": {
+            "total": 75,
+            "tp": 75,
+            "tn": 0,
+            "fp": 0,
+            "fn": 0,
+            "accuracy": 1.0,
+            "false_positive_rate": 0.0,
+            "false_negative_rate": 0.0
+          }
+        }
+      },
+      "error_analysis": {
+        "total_samples": 41,
+        "problem_samples": 6,
+        "rows": [
+          {
+            "sample_id": "crosschain_reentrancy_pairs__05_cross_contract_reentrancy__fixed",
+            "category": "cross_contract_reentrancy",
+            "variant": "fixed",
+            "label": false,
+            "repeat_count": 3,
+            "correct_count": 0,
+            "error_count": 3,
+            "error_rate": 1.0,
+            "false_positive_count": 3,
+            "false_negative_count": 0,
+            "avg_confidence": 0.9,
+            "avg_wrong_confidence": 0.9,
+            "representative_error": {
+              "error_kind": "FP",
+              "predicted": true,
+              "confidence": 0.9,
+              "vulnerable_functions": [
+                "transferData"
+              ],
+              "attack_path": "攻击者通过外部合约回调transferData函数，在状态更新后但外部调用前重入，导致多次写入或事件重复触发。",
+              "reasoning": "函数transferData在更新状态变量transferredData后，调用了外部合约CosmosBridge的transferDataToCosmos函数，该外部调用可能触发回调，且没有重入锁保护，存在跨合约重入风险。"
+            }
+          },
+          {
+            "sample_id": "serial_coder__02_reentrancy__insecure",
+            "category": "standard_reentrancy",
+            "variant": "insecure",
+            "label": true,
+            "repeat_count": 3,
+            "correct_count": 0,
+            "error_count": 3,
+            "error_rate": 1.0,
+            "false_positive_count": 0,
+            "false_negative_count": 3,
+            "avg_confidence": 0.0,
+            "avg_wrong_confidence": 0.0,
+            "representative_error": {
+              "error_kind": "FN",
+              "predicted": false,
+              "confidence": 0.0,
+              "vulnerable_functions": [],
+              "attack_path": "",
+              "reasoning": ""
+            }
+          },
+          {
+            "sample_id": "serial_coder__03_reentrancy_via_modifier__fixed",
+            "category": "reentrancy_via_modifier",
+            "variant": "fixed",
+            "label": false,
+            "repeat_count": 3,
+            "correct_count": 0,
+            "error_count": 3,
+            "error_rate": 1.0,
+            "false_positive_count": 3,
+            "false_negative_count": 0,
+            "avg_confidence": 0.9333,
+            "avg_wrong_confidence": 0.9333,
+            "representative_error": {
+              "error_kind": "FP",
+              "predicted": true,
+              "confidence": 0.9,
+              "vulnerable_functions": [
+                "receiveAirdrop"
+              ],
+              "attack_path": "攻击者通过合约调用receiveAirdrop，在外部调用canReceiveAirdrop（可能回调攻击者合约）后，状态变量userBalances、receivedAirdrops、airdropAmount尚未更新，攻击者可利用重入多次领取空投。",
+              "reasoning": "receiveAirdrop函数使用了noReentrant修饰符，但该修饰符是自定义的，且locked变量在ReentrancyGuard中定义，但noReentrant修饰符未正确使用ReentrancyGuard的locked变量（可能作用域问题），且静态分析显示外部调用后状态更新为false，存在重入风险。"
+            }
+          },
+          {
+            "sample_id": "serial_coder__05_cross_contract_reentrancy__insecure",
+            "category": "cross_contract_reentrancy",
+            "variant": "insecure",
+            "label": true,
+            "repeat_count": 3,
+            "correct_count": 0,
+            "error_count": 3,
+            "error_rate": 1.0,
+            "false_positive_count": 0,
+            "false_negative_count": 3,
+            "avg_confidence": 1.0,
+            "avg_wrong_confidence": 1.0,
+            "representative_error": {
+              "error_kind": "FN",
+              "predicted": false,
+              "confidence": 1.0,
+              "vulnerable_functions": [],
+              "attack_path": "无",
+              "reasoning": "withdrawAll函数使用了noReentrant修饰符（自定义重入锁），在外部调用（ETH转账和burnAccount）之前设置locked=true，防止重入攻击。虽然存在外部调用后更新状态（burnAccount），但重入锁确保函数不可重入，因此安全。"
+            }
+          },
+          {
+            "sample_id": "crosschain_reentrancy_pairs__02_reentrancy__insecure",
+            "category": "standard_reentrancy",
+            "variant": "insecure",
+            "label": true,
+            "repeat_count": 3,
+            "correct_count": 1,
+            "error_count": 2,
+            "error_rate": 0.6667,
+            "false_positive_count": 0,
+            "false_negative_count": 2,
+            "avg_confidence": 0.3333,
+            "avg_wrong_confidence": 0.0,
+            "representative_error": {
+              "error_kind": "FN",
+              "predicted": false,
+              "confidence": 0.0,
+              "vulnerable_functions": [],
+              "attack_path": "",
+              "reasoning": ""
+            }
+          },
+          {
+            "sample_id": "crosschain_reentrancy_pairs__05_cross_contract_reentrancy__insecure",
+            "category": "cross_contract_reentrancy",
+            "variant": "insecure",
+            "label": true,
+            "repeat_count": 3,
+            "correct_count": 1,
+            "error_count": 2,
+            "error_rate": 0.6667,
+            "false_positive_count": 0,
+            "false_negative_count": 2,
+            "avg_confidence": 0.3167,
+            "avg_wrong_confidence": 0.0,
+            "representative_error": {
+              "error_kind": "FN",
+              "predicted": false,
+              "confidence": 0.0,
+              "vulnerable_functions": [],
+              "attack_path": "",
+              "reasoning": ""
+            }
+          }
+        ]
+      }
+    },
+    {
+      "profile": "crop_slither",
+      "repeat_count": 3,
+      "repeat_metrics": [
+        {
+          "total": 41,
+          "tp": 31,
+          "tn": 5,
+          "fp": 3,
+          "fn": 2,
+          "accuracy": 0.878,
+          "false_positive_rate": 0.375,
+          "false_negative_rate": 0.0606,
+          "profile": "crop_slither",
+          "repeat_index": 1
+        },
+        {
+          "total": 41,
+          "tp": 30,
+          "tn": 6,
+          "fp": 2,
+          "fn": 3,
+          "accuracy": 0.878,
+          "false_positive_rate": 0.25,
+          "false_negative_rate": 0.0909,
+          "profile": "crop_slither",
+          "repeat_index": 2
+        },
+        {
+          "total": 41,
+          "tp": 30,
+          "tn": 6,
+          "fp": 2,
+          "fn": 3,
+          "accuracy": 0.878,
+          "false_positive_rate": 0.25,
+          "false_negative_rate": 0.0909,
+          "profile": "crop_slither",
+          "repeat_index": 3
+        }
+      ],
+      "aggregate_metrics": {
+        "repeat_count": 3,
+        "mean": {
+          "total": 41,
+          "tp": 30.3333,
+          "tn": 5.6667,
+          "fp": 2.3333,
+          "fn": 2.6667,
+          "accuracy": 0.878,
+          "false_positive_rate": 0.2917,
+          "false_negative_rate": 0.0808
+        },
+        "std": {
+          "total": 0.0,
+          "tp": 0.4714,
+          "tn": 0.4714,
+          "fp": 0.4714,
+          "fn": 0.4714,
+          "accuracy": 0.0,
+          "false_positive_rate": 0.0589,
+          "false_negative_rate": 0.0143
+        },
+        "min": {
+          "total": 41,
+          "tp": 30,
+          "tn": 5,
+          "fp": 2,
+          "fn": 2,
+          "accuracy": 0.878,
+          "false_positive_rate": 0.25,
+          "false_negative_rate": 0.0606
+        },
+        "max": {
+          "total": 41,
+          "tp": 31,
+          "tn": 6,
+          "fp": 3,
+          "fn": 3,
+          "accuracy": 0.878,
+          "false_positive_rate": 0.375,
+          "false_negative_rate": 0.0909
+        }
+      },
+      "scenario_metrics": {
+        "by_category": {
+          "standard_reentrancy": {
+            "total": 72,
+            "tp": 62,
+            "tn": 6,
+            "fp": 0,
+            "fn": 4,
+            "accuracy": 0.9444,
+            "false_positive_rate": 0.0,
+            "false_negative_rate": 0.0606
+          },
+          "reentrancy_via_modifier": {
+            "total": 15,
+            "tp": 9,
+            "tn": 3,
+            "fp": 3,
+            "fn": 0,
+            "accuracy": 0.8,
+            "false_positive_rate": 0.5,
+            "false_negative_rate": 0.0
+          },
+          "cross_function_reentrancy": {
+            "total": 18,
+            "tp": 12,
+            "tn": 6,
+            "fp": 0,
+            "fn": 0,
+            "accuracy": 1.0,
+            "false_positive_rate": 0.0,
+            "false_negative_rate": 0.0
+          },
+          "cross_contract_reentrancy": {
+            "total": 18,
+            "tp": 8,
+            "tn": 2,
+            "fp": 4,
+            "fn": 4,
+            "accuracy": 0.5556,
+            "false_positive_rate": 0.6667,
+            "false_negative_rate": 0.3333
+          }
+        },
+        "by_variant": {
+          "insecure": {
+            "total": 24,
+            "tp": 16,
+            "tn": 0,
+            "fp": 0,
+            "fn": 8,
+            "accuracy": 0.6667,
+            "false_positive_rate": 0.0,
+            "false_negative_rate": 0.3333
+          },
+          "fixed": {
+            "total": 24,
+            "tp": 0,
+            "tn": 17,
+            "fp": 7,
+            "fn": 0,
+            "accuracy": 0.7083,
+            "false_positive_rate": 0.2917,
+            "false_negative_rate": 0.0
+          },
+          "vulnerable": {
+            "total": 75,
+            "tp": 75,
+            "tn": 0,
+            "fp": 0,
+            "fn": 0,
+            "accuracy": 1.0,
+            "false_positive_rate": 0.0,
+            "false_negative_rate": 0.0
+          }
+        }
+      },
+      "error_analysis": {
+        "total_samples": 41,
+        "problem_samples": 7,
+        "rows": [
+          {
+            "sample_id": "crosschain_reentrancy_pairs__05_cross_contract_reentrancy__fixed",
+            "category": "cross_contract_reentrancy",
+            "variant": "fixed",
+            "label": false,
+            "repeat_count": 3,
+            "correct_count": 0,
+            "error_count": 3,
+            "error_rate": 1.0,
+            "false_positive_count": 3,
+            "false_negative_count": 0,
+            "avg_confidence": 0.9,
+            "avg_wrong_confidence": 0.9,
+            "representative_error": {
+              "error_kind": "FP",
+              "predicted": true,
+              "confidence": 0.9,
+              "vulnerable_functions": [
+                "transferData"
+              ],
+              "attack_path": "攻击者调用transferData，触发对CosmosBridge的外部调用transferDataToCosmos，该调用可能回调合约的其他函数，在状态更新后再次修改transferredData，导致数据不一致或重入攻击。",
+              "reasoning": "函数transferData在更新状态变量transferredData后，立即进行了外部调用（CosmosBridge.HIGH_LEVEL_CALL），且未使用重入锁保护。外部调用可能重入合约，利用已更新的状态进行二次操作，构成跨合约重入漏洞。"
+            }
+          },
+          {
+            "sample_id": "serial_coder__02_reentrancy__insecure",
+            "category": "standard_reentrancy",
+            "variant": "insecure",
+            "label": true,
+            "repeat_count": 3,
+            "correct_count": 0,
+            "error_count": 3,
+            "error_rate": 1.0,
+            "false_positive_count": 0,
+            "false_negative_count": 3,
+            "avg_confidence": 0.0,
+            "avg_wrong_confidence": 0.0,
+            "representative_error": {
+              "error_kind": "FN",
+              "predicted": false,
+              "confidence": 0.0,
+              "vulnerable_functions": [],
+              "attack_path": "",
+              "reasoning": ""
+            }
+          },
+          {
+            "sample_id": "serial_coder__03_reentrancy_via_modifier__fixed",
+            "category": "reentrancy_via_modifier",
+            "variant": "fixed",
+            "label": false,
+            "repeat_count": 3,
+            "correct_count": 0,
+            "error_count": 3,
+            "error_rate": 1.0,
+            "false_positive_count": 3,
+            "false_negative_count": 0,
+            "avg_confidence": 0.9,
+            "avg_wrong_confidence": 0.9,
+            "representative_error": {
+              "error_kind": "FP",
+              "predicted": true,
+              "confidence": 0.9,
+              "vulnerable_functions": [
+                "receiveAirdrop"
+              ],
+              "attack_path": "攻击者通过合约调用receiveAirdrop，在外部调用canReceiveAirdrop（可能回调攻击者合约）后，状态变量userBalances、receivedAirdrops、airdropAmount尚未更新，攻击者可利用重入多次领取空投。",
+              "reasoning": "receiveAirdrop函数使用了noReentrant修饰符，但该修饰符是自定义实现，且locked变量在ReentrancyGuard中定义，但noReentrant修饰符未正确使用ReentrancyGuard的locked变量（可能重复定义或作用域问题），导致重入保护失效。静态分析显示外部调用后状态更新为false，存在重入风险。"
+            }
+          },
+          {
+            "sample_id": "serial_coder__05_cross_contract_reentrancy__insecure",
+            "category": "cross_contract_reentrancy",
+            "variant": "insecure",
+            "label": true,
+            "repeat_count": 3,
+            "correct_count": 0,
+            "error_count": 3,
+            "error_rate": 1.0,
+            "false_positive_count": 0,
+            "false_negative_count": 3,
+            "avg_confidence": 1.0,
+            "avg_wrong_confidence": 1.0,
+            "representative_error": {
+              "error_kind": "FN",
+              "predicted": false,
+              "confidence": 1.0,
+              "vulnerable_functions": [],
+              "attack_path": "无",
+              "reasoning": "withdrawAll函数使用了noReentrant修饰符（自定义重入锁），在外部调用（ETH转账和burnAccount）之前已设置locked=true，防止重入攻击。deposit函数虽然存在外部调用后更新状态，但未使用重入锁，不过deposit函数中外部调用moonToken.mint()后立即更新状态，且mint操作通常不会触发回调，因此整体不存在重入漏洞。"
+            }
+          },
+          {
+            "sample_id": "crosschain_reentrancy_pairs__02_reentrancy__insecure",
+            "category": "standard_reentrancy",
+            "variant": "insecure",
+            "label": true,
+            "repeat_count": 3,
+            "correct_count": 2,
+            "error_count": 1,
+            "error_rate": 0.3333,
+            "false_positive_count": 0,
+            "false_negative_count": 1,
+            "avg_confidence": 0.6667,
+            "avg_wrong_confidence": 0.0,
+            "representative_error": {
+              "error_kind": "FN",
+              "predicted": false,
+              "confidence": 0.0,
+              "vulnerable_functions": [],
+              "attack_path": "",
+              "reasoning": ""
+            }
+          },
+          {
+            "sample_id": "crosschain_reentrancy_pairs__05_cross_contract_reentrancy__insecure",
+            "category": "cross_contract_reentrancy",
+            "variant": "insecure",
+            "label": true,
+            "repeat_count": 3,
+            "correct_count": 2,
+            "error_count": 1,
+            "error_rate": 0.3333,
+            "false_positive_count": 0,
+            "false_negative_count": 1,
+            "avg_confidence": 0.6333,
+            "avg_wrong_confidence": 0.0,
+            "representative_error": {
+              "error_kind": "FN",
+              "predicted": false,
+              "confidence": 0.0,
+              "vulnerable_functions": [],
+              "attack_path": "",
+              "reasoning": ""
+            }
+          },
+          {
+            "sample_id": "serial_coder__05_cross_contract_reentrancy__fixed",
+            "category": "cross_contract_reentrancy",
+            "variant": "fixed",
+            "label": false,
+            "repeat_count": 3,
+            "correct_count": 2,
+            "error_count": 1,
+            "error_rate": 0.3333,
+            "false_positive_count": 1,
+            "false_negative_count": 0,
+            "avg_confidence": 0.9667,
+            "avg_wrong_confidence": 0.9,
+            "representative_error": {
+              "error_kind": "FP",
+              "predicted": true,
+              "confidence": 0.9,
+              "vulnerable_functions": [
+                "withdrawAll"
+              ],
+              "attack_path": "攻击者通过恶意合约调用withdrawAll，在moonToken.burnAccount回调中重入withdrawAll，由于状态更新在外部调用之后，导致多次提取资金",
+              "reasoning": "withdrawAll函数虽然使用了noReentrant修饰符，但该修饰符是自定义的，且函数在外部调用moonToken.burnAccount之后才发送ETH，但burnAccount可能触发回调，而noReentrant锁在函数执行完毕后才会释放，因此重入会被阻止。然而，静态分析显示交互后更新状态为False，且burnAccount是外部调用，若moonToken合约存在恶意回调，仍可能通过跨合约重入绕过锁，但noReentrant锁本身可防止同一合约内的重入。由于锁机制存在，实际风险较低，但静态分析认为存在跨合约重入可能。"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

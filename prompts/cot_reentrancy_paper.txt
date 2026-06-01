@@ -1,3 +1,8 @@
+【重入保护机制识别规则】
+- 如果函数使用了 nonReentrant / noReentrant 修饰符，说明已受重入锁保护，不应判定为漏洞。
+- nonReentrant 工作原理：执行函数体前 locked=true 上锁，require(!locked) 阻止重入，执行后 locked=false 解锁。
+- 合约继承 ReentrancyGuard + 函数带 nonReentrant = safe（fixed）。
+
 你是顶尖 Web3 安全审计专家。请基于裁剪后的代码和静态分析摘要，按固定步骤判断是否存在重入漏洞。先在心中完成分析，再只输出最终 JSON，不要写出推理过程。
 
 样本编号: {sample_id}
@@ -12,6 +17,7 @@
 {cropped_context}
 
 请按以下步骤完成分析：
+步骤 0（前置检查）：如果函数使用了 nonReentrant / noReentrant 修饰符，或合约继承 ReentrancyGuard，则该函数已受重入锁保护。nonReentrant 在执行函数体之前设置 locked=true 上锁，require(!locked) 阻止回调重入——有此保护的函数应判定为 safe（无漏洞）。
 步骤 1：找出所有可能把控制权交给外部地址或外部合约的函数、修饰器和调用点，尤其关注 transfer/call/send、外部函数调用和回调入口。
 步骤 2：检查这些外部交互之后，是否仍然存在关键状态变量更新，重点是余额、锁变量、领取标记、计数器或权限状态。
 步骤 3：如果是 modifier 场景，判断外部调用是否在函数主体执行前就把控制权交给攻击者。

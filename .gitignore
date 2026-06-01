@@ -1,3 +1,27 @@
+# Python
 __pycache__/
 *.pyc
 *.pyo
+
+# Logs
+*.log
+
+# Large binary assets (don't upload to GitHub)
+slides/
+external/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Runs (only keep summary files)
+runs/
+!runs/*/summary.json
+!runs/*/run_config.json
+
+# Cache
+contracts_reentrancy_slice_v1/

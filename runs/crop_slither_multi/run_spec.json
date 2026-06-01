@@ -1,8 +1,0 @@
-{
-  "name": "crop_slither_multi",
-  "template_name": "multi_contract_summary_prompt.txt",
-  "use_raw_context": false,
-  "include_static_summary": true,
-  "include_support_files": true,
-  "description": "Add multi-contract context on top of trimming and static summary."
-}

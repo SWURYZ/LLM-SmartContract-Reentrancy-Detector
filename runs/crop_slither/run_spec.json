@@ -1,8 +1,0 @@
-{
-  "name": "crop_slither",
-  "template_name": "baseline_summary_prompt.txt",
-  "use_raw_context": false,
-  "include_static_summary": true,
-  "include_support_files": false,
-  "description": "Add static-analysis summary on top of trimming."
-}

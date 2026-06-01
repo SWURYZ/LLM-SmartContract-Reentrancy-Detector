@@ -1,0 +1,25 @@
+{
+  "run_id": "deepseek-ablation-clean-r3-20260601",
+  "repeat": 3,
+  "backend": "openai",
+  "model": "deepseek-chat",
+  "base_url": null,
+  "profiles": [
+    "baseline_raw",
+    "crop_only",
+    "crop_slither",
+    "crop_slither_cot",
+    "crop_slither_multi"
+  ],
+  "max_samples": 0,
+  "project_root": "/opt/uestc",
+  "source_root": "/opt/uestc/external/solidity-security-by-example",
+  "curated_reentrancy": true,
+  "curated_source_root": "/opt/uestc/external/smartbugs-curated",
+  "extra_source_roots": [
+    "/opt/uestc/external/extra_reentrancy_pocs",
+    "/opt/uestc/external/crosschain_reentrancy_pairs"
+  ],
+  "contracts_root": "/opt/uestc/contracts",
+  "output_root": "/opt/uestc/runs/deepseek-ablation-clean-r3-20260601"
+}

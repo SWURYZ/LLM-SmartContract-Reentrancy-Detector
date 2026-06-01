@@ -1,78 +1,465 @@
 [
   {
-    "sample_id": "02_reentrancy__insecure",
+    "sample_id": "serial_coder__02_reentrancy__insecure",
     "category": "standard_reentrancy",
     "variant": "insecure",
     "label": true,
-    "main_file": "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\02_reentrancy\\InsecureEtherVault.sol",
+    "label_source": "paired_variant",
+    "source_name": "serial_coder",
+    "source_root": "/opt/uestc/external/solidity-security-by-example",
+    "main_file": "/opt/uestc/contracts/02_reentrancy/InsecureEtherVault.sol",
     "support_files": []
   },
   {
-    "sample_id": "02_reentrancy__fixed",
+    "sample_id": "serial_coder__02_reentrancy__fixed",
     "category": "standard_reentrancy",
     "variant": "fixed",
     "label": false,
-    "main_file": "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\02_reentrancy\\FixedEtherVault.sol",
+    "label_source": "paired_variant",
+    "source_name": "serial_coder",
+    "source_root": "/opt/uestc/external/solidity-security-by-example",
+    "main_file": "/opt/uestc/contracts/02_reentrancy/FixedEtherVault.sol",
     "support_files": []
   },
   {
-    "sample_id": "03_reentrancy_via_modifier__insecure",
+    "sample_id": "serial_coder__03_reentrancy_via_modifier__insecure",
     "category": "reentrancy_via_modifier",
     "variant": "insecure",
     "label": true,
-    "main_file": "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\03_reentrancy_via_modifier\\InsecureAirdrop.sol",
+    "label_source": "paired_variant",
+    "source_name": "serial_coder",
+    "source_root": "/opt/uestc/external/solidity-security-by-example",
+    "main_file": "/opt/uestc/contracts/03_reentrancy_via_modifier/InsecureAirdrop.sol",
     "support_files": [
-      "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\03_reentrancy_via_modifier\\Dependencies.sol"
+      "/opt/uestc/contracts/03_reentrancy_via_modifier/Dependencies.sol"
     ]
   },
   {
-    "sample_id": "03_reentrancy_via_modifier__fixed",
+    "sample_id": "serial_coder__03_reentrancy_via_modifier__fixed",
     "category": "reentrancy_via_modifier",
     "variant": "fixed",
     "label": false,
-    "main_file": "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\03_reentrancy_via_modifier\\FixedAirdrop.sol",
+    "label_source": "paired_variant",
+    "source_name": "serial_coder",
+    "source_root": "/opt/uestc/external/solidity-security-by-example",
+    "main_file": "/opt/uestc/contracts/03_reentrancy_via_modifier/FixedAirdrop.sol",
     "support_files": [
-      "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\03_reentrancy_via_modifier\\Dependencies.sol"
+      "/opt/uestc/contracts/03_reentrancy_via_modifier/Dependencies.sol"
     ]
   },
   {
-    "sample_id": "04_cross_function_reentrancy__insecure",
+    "sample_id": "serial_coder__04_cross_function_reentrancy__insecure",
     "category": "cross_function_reentrancy",
     "variant": "insecure",
     "label": true,
-    "main_file": "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\04_cross_function_reentrancy\\InsecureEtherVault.sol",
+    "label_source": "paired_variant",
+    "source_name": "serial_coder",
+    "source_root": "/opt/uestc/external/solidity-security-by-example",
+    "main_file": "/opt/uestc/contracts/04_cross_function_reentrancy/InsecureEtherVault.sol",
     "support_files": [
-      "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\04_cross_function_reentrancy\\Dependencies.sol"
+      "/opt/uestc/contracts/04_cross_function_reentrancy/Dependencies.sol"
     ]
   },
   {
-    "sample_id": "04_cross_function_reentrancy__fixed",
+    "sample_id": "serial_coder__04_cross_function_reentrancy__fixed",
     "category": "cross_function_reentrancy",
     "variant": "fixed",
     "label": false,
-    "main_file": "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\04_cross_function_reentrancy\\FixedEtherVault.sol",
+    "label_source": "paired_variant",
+    "source_name": "serial_coder",
+    "source_root": "/opt/uestc/external/solidity-security-by-example",
+    "main_file": "/opt/uestc/contracts/04_cross_function_reentrancy/FixedEtherVault.sol",
     "support_files": [
-      "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\04_cross_function_reentrancy\\Dependencies.sol"
+      "/opt/uestc/contracts/04_cross_function_reentrancy/Dependencies.sol"
     ]
   },
   {
-    "sample_id": "05_cross_contract_reentrancy__insecure",
+    "sample_id": "serial_coder__05_cross_contract_reentrancy__insecure",
     "category": "cross_contract_reentrancy",
     "variant": "insecure",
     "label": true,
-    "main_file": "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\05_cross_contract_reentrancy\\InsecureMoonVault.sol",
+    "label_source": "paired_variant",
+    "source_name": "serial_coder",
+    "source_root": "/opt/uestc/external/solidity-security-by-example",
+    "main_file": "/opt/uestc/contracts/05_cross_contract_reentrancy/InsecureMoonVault.sol",
     "support_files": [
-      "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\05_cross_contract_reentrancy\\Dependencies.sol"
+      "/opt/uestc/contracts/05_cross_contract_reentrancy/Dependencies.sol"
     ]
   },
   {
-    "sample_id": "05_cross_contract_reentrancy__fixed",
+    "sample_id": "serial_coder__05_cross_contract_reentrancy__fixed",
     "category": "cross_contract_reentrancy",
     "variant": "fixed",
     "label": false,
-    "main_file": "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\05_cross_contract_reentrancy\\FixedMoonVault.sol",
+    "label_source": "paired_variant",
+    "source_name": "serial_coder",
+    "source_root": "/opt/uestc/external/solidity-security-by-example",
+    "main_file": "/opt/uestc/contracts/05_cross_contract_reentrancy/FixedMoonVault.sol",
     "support_files": [
-      "D:\\Desktop\\code\\uestc\\LLM-SmartContract-Reentrancy-Detector\\contracts\\05_cross_contract_reentrancy\\Dependencies.sol"
+      "/opt/uestc/contracts/05_cross_contract_reentrancy/Dependencies.sol"
     ]
+  },
+  {
+    "sample_id": "extra_reentrancy_pocs__cross_contract_reentrancy",
+    "category": "cross_contract_reentrancy",
+    "variant": "vulnerable",
+    "label": true,
+    "label_source": "curated_annotation",
+    "source_name": "extra_reentrancy_pocs",
+    "source_root": "/opt/uestc/external/extra_reentrancy_pocs",
+    "main_file": "/opt/uestc/contracts/extra_reentrancy_pocs/dataset/reentrancy/cross_contract_reentrancy.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "extra_reentrancy_pocs__cross_function_reentrancy",
+    "category": "cross_function_reentrancy",
+    "variant": "vulnerable",
+    "label": true,
+    "label_source": "curated_annotation",
+    "source_name": "extra_reentrancy_pocs",
+    "source_root": "/opt/uestc/external/extra_reentrancy_pocs",
+    "main_file": "/opt/uestc/contracts/extra_reentrancy_pocs/dataset/reentrancy/cross_function_reentrancy.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "crosschain_reentrancy_pairs__02_reentrancy__insecure",
+    "category": "standard_reentrancy",
+    "variant": "insecure",
+    "label": true,
+    "label_source": "paired_variant",
+    "source_name": "crosschain_reentrancy_pairs",
+    "source_root": "/opt/uestc/external/crosschain_reentrancy_pairs",
+    "main_file": "/opt/uestc/contracts/crosschain_reentrancy_pairs/02_reentrancy/InsecureVulnerableExternalContract10.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "crosschain_reentrancy_pairs__02_reentrancy__fixed",
+    "category": "standard_reentrancy",
+    "variant": "fixed",
+    "label": false,
+    "label_source": "paired_variant",
+    "source_name": "crosschain_reentrancy_pairs",
+    "source_root": "/opt/uestc/external/crosschain_reentrancy_pairs",
+    "main_file": "/opt/uestc/contracts/crosschain_reentrancy_pairs/02_reentrancy/FixedCrossChainDataTransfer.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "crosschain_reentrancy_pairs__03_reentrancy_via_modifier__insecure",
+    "category": "reentrancy_via_modifier",
+    "variant": "insecure",
+    "label": true,
+    "label_source": "paired_variant",
+    "source_name": "crosschain_reentrancy_pairs",
+    "source_root": "/opt/uestc/external/crosschain_reentrancy_pairs",
+    "main_file": "/opt/uestc/contracts/crosschain_reentrancy_pairs/03_reentrancy_via_modifier/InsecureModifierEntrancyCut.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "crosschain_reentrancy_pairs__03_reentrancy_via_modifier__fixed",
+    "category": "reentrancy_via_modifier",
+    "variant": "fixed",
+    "label": false,
+    "label_source": "paired_variant",
+    "source_name": "crosschain_reentrancy_pairs",
+    "source_root": "/opt/uestc/external/crosschain_reentrancy_pairs",
+    "main_file": "/opt/uestc/contracts/crosschain_reentrancy_pairs/03_reentrancy_via_modifier/FixedCrossChainDataTransfer1.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "crosschain_reentrancy_pairs__04_cross_function_reentrancy__insecure",
+    "category": "cross_function_reentrancy",
+    "variant": "insecure",
+    "label": true,
+    "label_source": "paired_variant",
+    "source_name": "crosschain_reentrancy_pairs",
+    "source_root": "/opt/uestc/external/crosschain_reentrancy_pairs",
+    "main_file": "/opt/uestc/contracts/crosschain_reentrancy_pairs/04_cross_function_reentrancy/InsecureReentrancyCrossFunctionCut.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "crosschain_reentrancy_pairs__04_cross_function_reentrancy__fixed",
+    "category": "cross_function_reentrancy",
+    "variant": "fixed",
+    "label": false,
+    "label_source": "paired_variant",
+    "source_name": "crosschain_reentrancy_pairs",
+    "source_root": "/opt/uestc/external/crosschain_reentrancy_pairs",
+    "main_file": "/opt/uestc/contracts/crosschain_reentrancy_pairs/04_cross_function_reentrancy/FixedCrossChainDataTransferPolkadot.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "crosschain_reentrancy_pairs__05_cross_contract_reentrancy__insecure",
+    "category": "cross_contract_reentrancy",
+    "variant": "insecure",
+    "label": true,
+    "label_source": "paired_variant",
+    "source_name": "crosschain_reentrancy_pairs",
+    "source_root": "/opt/uestc/external/crosschain_reentrancy_pairs",
+    "main_file": "/opt/uestc/contracts/crosschain_reentrancy_pairs/05_cross_contract_reentrancy/InsecureCrossChainInteraction.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "crosschain_reentrancy_pairs__05_cross_contract_reentrancy__fixed",
+    "category": "cross_contract_reentrancy",
+    "variant": "fixed",
+    "label": false,
+    "label_source": "paired_variant",
+    "source_name": "crosschain_reentrancy_pairs",
+    "source_root": "/opt/uestc/external/crosschain_reentrancy_pairs",
+    "main_file": "/opt/uestc/contracts/crosschain_reentrancy_pairs/05_cross_contract_reentrancy/FixedCrossChainDataTransferCosmos.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "smartbugs_curated__0x01f8c4e3fa3edeb29e514cba738d87ce8c091d3f",
+    "category": "standard_reentrancy",
+    "variant": "vulnerable",
+    "label": true,
+    "label_source": "curated_annotation",
+    "source_name": "smartbugs_curated",
+    "source_root": "/opt/uestc/external/smartbugs-curated",
+    "main_file": "/opt/uestc/contracts/smartbugs_curated/dataset/reentrancy/0x01f8c4e3fa3edeb29e514cba738d87ce8c091d3f.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "smartbugs_curated__0x23a91059fdc9579a9fbd0edc5f2ea0bfdb70deb4",
+    "category": "standard_reentrancy",
+    "variant": "vulnerable",
+    "label": true,
+    "label_source": "curated_annotation",
+    "source_name": "smartbugs_curated",
+    "source_root": "/opt/uestc/external/smartbugs-curated",
+    "main_file": "/opt/uestc/contracts/smartbugs_curated/dataset/reentrancy/0x23a91059fdc9579a9fbd0edc5f2ea0bfdb70deb4.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "smartbugs_curated__0x4e73b32ed6c35f570686b89848e5f39f20ecc106",
+    "category": "standard_reentrancy",
+    "variant": "vulnerable",
+    "label": true,
+    "label_source": "curated_annotation",
+    "source_name": "smartbugs_curated",
+    "source_root": "/opt/uestc/external/smartbugs-curated",
+    "main_file": "/opt/uestc/contracts/smartbugs_curated/dataset/reentrancy/0x4e73b32ed6c35f570686b89848e5f39f20ecc106.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "smartbugs_curated__0x627fa62ccbb1c1b04ffaecd72a53e37fc0e17839",
+    "category": "standard_reentrancy",
+    "variant": "vulnerable",
+    "label": true,
+    "label_source": "curated_annotation",
+    "source_name": "smartbugs_curated",
+    "source_root": "/opt/uestc/external/smartbugs-curated",
+    "main_file": "/opt/uestc/contracts/smartbugs_curated/dataset/reentrancy/0x627fa62ccbb1c1b04ffaecd72a53e37fc0e17839.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "smartbugs_curated__0x7541b76cb60f4c60af330c208b0623b7f54bf615",
+    "category": "standard_reentrancy",
+    "variant": "vulnerable",
+    "label": true,
+    "label_source": "curated_annotation",
+    "source_name": "smartbugs_curated",
+    "source_root": "/opt/uestc/external/smartbugs-curated",
+    "main_file": "/opt/uestc/contracts/smartbugs_curated/dataset/reentrancy/0x7541b76cb60f4c60af330c208b0623b7f54bf615.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "smartbugs_curated__0x7a8721a9d64c74da899424c1b52acbf58ddc9782",
+    "category": "standard_reentrancy",
+    "variant": "vulnerable",
+    "label": true,
+    "label_source": "curated_annotation",
+    "source_name": "smartbugs_curated",
+    "source_root": "/opt/uestc/external/smartbugs-curated",
+    "main_file": "/opt/uestc/contracts/smartbugs_curated/dataset/reentrancy/0x7a8721a9d64c74da899424c1b52acbf58ddc9782.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "smartbugs_curated__0x7b368c4e805c3870b6c49a3f1f49f69af8662cf3",
+    "category": "standard_reentrancy",
+    "variant": "vulnerable",
+    "label": true,
+    "label_source": "curated_annotation",
+    "source_name": "smartbugs_curated",
+    "source_root": "/opt/uestc/external/smartbugs-curated",
+    "main_file": "/opt/uestc/contracts/smartbugs_curated/dataset/reentrancy/0x7b368c4e805c3870b6c49a3f1f49f69af8662cf3.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "smartbugs_curated__0x8c7777c45481dba411450c228cb692ac3d550344",
+    "category": "standard_reentrancy",
+    "variant": "vulnerable",
+    "label": true,
+    "label_source": "curated_annotation",
+    "source_name": "smartbugs_curated",
+    "source_root": "/opt/uestc/external/smartbugs-curated",
+    "main_file": "/opt/uestc/contracts/smartbugs_curated/dataset/reentrancy/0x8c7777c45481dba411450c228cb692ac3d550344.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "smartbugs_curated__0x941d225236464a25eb18076df7da6a91d0f95e9e",
+    "category": "standard_reentrancy",
+    "variant": "vulnerable",
+    "label": true,
+    "label_source": "curated_annotation",
+    "source_name": "smartbugs_curated",
+    "source_root": "/opt/uestc/external/smartbugs-curated",
+    "main_file": "/opt/uestc/contracts/smartbugs_curated/dataset/reentrancy/0x941d225236464a25eb18076df7da6a91d0f95e9e.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "smartbugs_curated__0x96edbe868531bd23a6c05e9d0c424ea64fb1b78b",
+    "category": "standard_reentrancy",
+    "variant": "vulnerable",
+    "label": true,
+    "label_source": "curated_annotation",
+    "source_name": "smartbugs_curated",
+    "source_root": "/opt/uestc/external/smartbugs-curated",
+    "main_file": "/opt/uestc/contracts/smartbugs_curated/dataset/reentrancy/0x96edbe868531bd23a6c05e9d0c424ea64fb1b78b.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "smartbugs_curated__0xb5e1b1ee15c6fa0e48fce100125569d430f1bd12",
+    "category": "standard_reentrancy",
+    "variant": "vulnerable",
+    "label": true,
+    "label_source": "curated_annotation",
+    "source_name": "smartbugs_curated",
+    "source_root": "/opt/uestc/external/smartbugs-curated",
+    "main_file": "/opt/uestc/contracts/smartbugs_curated/dataset/reentrancy/0xb5e1b1ee15c6fa0e48fce100125569d430f1bd12.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "smartbugs_curated__0xbe4041d55db380c5ae9d4a9b9703f1ed4e7e3888",
+    "category": "standard_reentrancy",
+    "variant": "vulnerable",
+    "label": true,
+    "label_source": "curated_annotation",
+    "source_name": "smartbugs_curated",
+    "source_root": "/opt/uestc/external/smartbugs-curated",
+    "main_file": "/opt/uestc/contracts/smartbugs_curated/dataset/reentrancy/0xbe4041d55db380c5ae9d4a9b9703f1ed4e7e3888.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "smartbugs_curated__etherbank",
+    "category": "standard_reentrancy",
+    "variant": "vulnerable",
+    "label": true,
+    "label_source": "curated_annotation",
+    "source_name": "smartbugs_curated",
+    "source_root": "/opt/uestc/external/smartbugs-curated",
+    "main_file": "/opt/uestc/contracts/smartbugs_curated/dataset/reentrancy/etherbank.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "smartbugs_curated__etherstore",
+    "category": "standard_reentrancy",
+    "variant": "vulnerable",
+    "label": true,
+    "label_source": "curated_annotation",
+    "source_name": "smartbugs_curated",
+    "source_root": "/opt/uestc/external/smartbugs-curated",
+    "main_file": "/opt/uestc/contracts/smartbugs_curated/dataset/reentrancy/etherstore.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "smartbugs_curated__modifier_reentrancy",
+    "category": "reentrancy_via_modifier",
+    "variant": "vulnerable",
+    "label": true,
+    "label_source": "curated_annotation",
+    "source_name": "smartbugs_curated",
+    "source_root": "/opt/uestc/external/smartbugs-curated",
+    "main_file": "/opt/uestc/contracts/smartbugs_curated/dataset/reentrancy/modifier_reentrancy.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "smartbugs_curated__reentrance",
+    "category": "standard_reentrancy",
+    "variant": "vulnerable",
+    "label": true,
+    "label_source": "curated_annotation",
+    "source_name": "smartbugs_curated",
+    "source_root": "/opt/uestc/external/smartbugs-curated",
+    "main_file": "/opt/uestc/contracts/smartbugs_curated/dataset/reentrancy/reentrance.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "smartbugs_curated__reentrancy_bonus",
+    "category": "standard_reentrancy",
+    "variant": "vulnerable",
+    "label": true,
+    "label_source": "curated_annotation",
+    "source_name": "smartbugs_curated",
+    "source_root": "/opt/uestc/external/smartbugs-curated",
+    "main_file": "/opt/uestc/contracts/smartbugs_curated/dataset/reentrancy/reentrancy_bonus.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "smartbugs_curated__reentrancy_cross_function",
+    "category": "cross_function_reentrancy",
+    "variant": "vulnerable",
+    "label": true,
+    "label_source": "curated_annotation",
+    "source_name": "smartbugs_curated",
+    "source_root": "/opt/uestc/external/smartbugs-curated",
+    "main_file": "/opt/uestc/contracts/smartbugs_curated/dataset/reentrancy/reentrancy_cross_function.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "smartbugs_curated__reentrancy_dao",
+    "category": "standard_reentrancy",
+    "variant": "vulnerable",
+    "label": true,
+    "label_source": "curated_annotation",
+    "source_name": "smartbugs_curated",
+    "source_root": "/opt/uestc/external/smartbugs-curated",
+    "main_file": "/opt/uestc/contracts/smartbugs_curated/dataset/reentrancy/reentrancy_dao.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "smartbugs_curated__reentrancy_insecure",
+    "category": "standard_reentrancy",
+    "variant": "vulnerable",
+    "label": true,
+    "label_source": "curated_annotation",
+    "source_name": "smartbugs_curated",
+    "source_root": "/opt/uestc/external/smartbugs-curated",
+    "main_file": "/opt/uestc/contracts/smartbugs_curated/dataset/reentrancy/reentrancy_insecure.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "smartbugs_curated__reentrancy_simple",
+    "category": "standard_reentrancy",
+    "variant": "vulnerable",
+    "label": true,
+    "label_source": "curated_annotation",
+    "source_name": "smartbugs_curated",
+    "source_root": "/opt/uestc/external/smartbugs-curated",
+    "main_file": "/opt/uestc/contracts/smartbugs_curated/dataset/reentrancy/reentrancy_simple.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "smartbugs_curated__simple_dao",
+    "category": "standard_reentrancy",
+    "variant": "vulnerable",
+    "label": true,
+    "label_source": "curated_annotation",
+    "source_name": "smartbugs_curated",
+    "source_root": "/opt/uestc/external/smartbugs-curated",
+    "main_file": "/opt/uestc/contracts/smartbugs_curated/dataset/reentrancy/simple_dao.sol",
+    "support_files": []
+  },
+  {
+    "sample_id": "smartbugs_curated__spank_chain_payment",
+    "category": "cross_contract_reentrancy",
+    "variant": "vulnerable",
+    "label": true,
+    "label_source": "curated_annotation",
+    "source_name": "smartbugs_curated",
+    "source_root": "/opt/uestc/external/smartbugs-curated",
+    "main_file": "/opt/uestc/contracts/smartbugs_curated/dataset/reentrancy/spank_chain_payment.sol",
+    "support_files": []
   }
 ]

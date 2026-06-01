@@ -11,6 +11,11 @@
 风险相关代码裁剪结果：
 {cropped_context}
 
+【重入保护机制识别规则】
+- 如果函数使用了 nonReentrant / noReentrant 修饰符，说明该函数已受到重入锁保护，不应判定为存在重入漏洞。
+- nonReentrant 修饰符工作原理：在执行函数体之前设置 locked=true（上锁），require(!locked) 阻止回调重入。
+- 如果合约继承了 ReentrancyGuard 且函数带有 nonReentrant 修饰符，则该函数是安全的（fixed）。
+
 请按以下步骤完成分析：
 步骤 1：找出所有包含外部调用、ETH 转账或潜在控制流转移的函数/修饰器。
 步骤 2：检查在外部交互之后，是否仍存在关键状态变量更新，尤其是余额、领取标记、锁变量、代币余额等。

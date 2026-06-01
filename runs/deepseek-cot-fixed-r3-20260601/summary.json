@@ -1,0 +1,463 @@
+{
+  "run_id": "deepseek-cot-fixed-r3-20260601",
+  "repeat_count": 3,
+  "run_config": {
+    "run_id": "deepseek-cot-fixed-r3-20260601",
+    "repeat": 3,
+    "backend": "openai",
+    "model": "deepseek-chat",
+    "base_url": "https://api.deepseek.com",
+    "profiles": [
+      "crop_slither_cot"
+    ],
+    "max_samples": 0,
+    "project_root": "/opt/uestc",
+    "source_root": "/opt/uestc/external/solidity-security-by-example",
+    "curated_reentrancy": true,
+    "curated_source_root": "/opt/uestc/external/smartbugs-curated",
+    "extra_source_roots": [
+      "/opt/uestc/external/extra_reentrancy_pocs",
+      "/opt/uestc/external/crosschain_reentrancy_pairs"
+    ],
+    "contracts_root": "/opt/uestc/contracts",
+    "output_root": "/opt/uestc/runs/deepseek-cot-fixed-r3-20260601"
+  },
+  "repeats": [
+    {
+      "repeat_index": 1,
+      "profiles": [
+        {
+          "profile": "crop_slither_cot",
+          "metrics": {
+            "total": 41,
+            "tp": 28,
+            "tn": 5,
+            "fp": 3,
+            "fn": 5,
+            "accuracy": 0.8049,
+            "false_positive_rate": 0.375,
+            "false_negative_rate": 0.1515,
+            "profile": "crop_slither_cot",
+            "repeat_index": 1
+          },
+          "error_samples": 8
+        }
+      ]
+    },
+    {
+      "repeat_index": 2,
+      "profiles": [
+        {
+          "profile": "crop_slither_cot",
+          "metrics": {
+            "total": 41,
+            "tp": 27,
+            "tn": 5,
+            "fp": 3,
+            "fn": 6,
+            "accuracy": 0.7805,
+            "false_positive_rate": 0.375,
+            "false_negative_rate": 0.1818,
+            "profile": "crop_slither_cot",
+            "repeat_index": 2
+          },
+          "error_samples": 9
+        }
+      ]
+    },
+    {
+      "repeat_index": 3,
+      "profiles": [
+        {
+          "profile": "crop_slither_cot",
+          "metrics": {
+            "total": 41,
+            "tp": 29,
+            "tn": 5,
+            "fp": 3,
+            "fn": 4,
+            "accuracy": 0.8293,
+            "false_positive_rate": 0.375,
+            "false_negative_rate": 0.1212,
+            "profile": "crop_slither_cot",
+            "repeat_index": 3
+          },
+          "error_samples": 7
+        }
+      ]
+    }
+  ],
+  "profiles": [
+    {
+      "profile": "crop_slither_cot",
+      "repeat_count": 3,
+      "repeat_metrics": [
+        {
+          "total": 41,
+          "tp": 28,
+          "tn": 5,
+          "fp": 3,
+          "fn": 5,
+          "accuracy": 0.8049,
+          "false_positive_rate": 0.375,
+          "false_negative_rate": 0.1515,
+          "profile": "crop_slither_cot",
+          "repeat_index": 1
+        },
+        {
+          "total": 41,
+          "tp": 27,
+          "tn": 5,
+          "fp": 3,
+          "fn": 6,
+          "accuracy": 0.7805,
+          "false_positive_rate": 0.375,
+          "false_negative_rate": 0.1818,
+          "profile": "crop_slither_cot",
+          "repeat_index": 2
+        },
+        {
+          "total": 41,
+          "tp": 29,
+          "tn": 5,
+          "fp": 3,
+          "fn": 4,
+          "accuracy": 0.8293,
+          "false_positive_rate": 0.375,
+          "false_negative_rate": 0.1212,
+          "profile": "crop_slither_cot",
+          "repeat_index": 3
+        }
+      ],
+      "aggregate_metrics": {
+        "repeat_count": 3,
+        "mean": {
+          "total": 41,
+          "tp": 28,
+          "tn": 5,
+          "fp": 3,
+          "fn": 5,
+          "accuracy": 0.8049,
+          "false_positive_rate": 0.375,
+          "false_negative_rate": 0.1515
+        },
+        "std": {
+          "total": 0.0,
+          "tp": 0.8165,
+          "tn": 0.0,
+          "fp": 0.0,
+          "fn": 0.8165,
+          "accuracy": 0.0199,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 0.0247
+        },
+        "min": {
+          "total": 41,
+          "tp": 27,
+          "tn": 5,
+          "fp": 3,
+          "fn": 4,
+          "accuracy": 0.7805,
+          "false_positive_rate": 0.375,
+          "false_negative_rate": 0.1212
+        },
+        "max": {
+          "total": 41,
+          "tp": 29,
+          "tn": 5,
+          "fp": 3,
+          "fn": 6,
+          "accuracy": 0.8293,
+          "false_positive_rate": 0.375,
+          "false_negative_rate": 0.1818
+        }
+      },
+      "scenario_metrics": {
+        "by_category": {
+          "standard_reentrancy": {
+            "total": 72,
+            "tp": 63,
+            "tn": 6,
+            "fp": 0,
+            "fn": 3,
+            "accuracy": 0.9583,
+            "false_positive_rate": 0.0,
+            "false_negative_rate": 0.0455
+          },
+          "reentrancy_via_modifier": {
+            "total": 15,
+            "tp": 9,
+            "tn": 3,
+            "fp": 3,
+            "fn": 0,
+            "accuracy": 0.8,
+            "false_positive_rate": 0.5,
+            "false_negative_rate": 0.0
+          },
+          "cross_function_reentrancy": {
+            "total": 18,
+            "tp": 9,
+            "tn": 3,
+            "fp": 3,
+            "fn": 3,
+            "accuracy": 0.6667,
+            "false_positive_rate": 0.5,
+            "false_negative_rate": 0.25
+          },
+          "cross_contract_reentrancy": {
+            "total": 18,
+            "tp": 3,
+            "tn": 3,
+            "fp": 3,
+            "fn": 9,
+            "accuracy": 0.3333,
+            "false_positive_rate": 0.5,
+            "false_negative_rate": 0.75
+          }
+        },
+        "by_variant": {
+          "insecure": {
+            "total": 24,
+            "tp": 12,
+            "tn": 0,
+            "fp": 0,
+            "fn": 12,
+            "accuracy": 0.5,
+            "false_positive_rate": 0.0,
+            "false_negative_rate": 0.5
+          },
+          "fixed": {
+            "total": 24,
+            "tp": 0,
+            "tn": 15,
+            "fp": 9,
+            "fn": 0,
+            "accuracy": 0.625,
+            "false_positive_rate": 0.375,
+            "false_negative_rate": 0.0
+          },
+          "vulnerable": {
+            "total": 75,
+            "tp": 72,
+            "tn": 0,
+            "fp": 0,
+            "fn": 3,
+            "accuracy": 0.96,
+            "false_positive_rate": 0.0,
+            "false_negative_rate": 0.04
+          }
+        }
+      },
+      "error_analysis": {
+        "total_samples": 41,
+        "problem_samples": 9,
+        "rows": [
+          {
+            "sample_id": "crosschain_reentrancy_pairs__04_cross_function_reentrancy__fixed",
+            "category": "cross_function_reentrancy",
+            "variant": "fixed",
+            "label": false,
+            "repeat_count": 3,
+            "correct_count": 0,
+            "error_count": 3,
+            "error_rate": 1.0,
+            "false_positive_count": 3,
+            "false_negative_count": 0,
+            "avg_confidence": 0.9333,
+            "avg_wrong_confidence": 0.9333,
+            "representative_error": {
+              "error_kind": "FP",
+              "predicted": true,
+              "confidence": 0.95,
+              "vulnerable_functions": [
+                "transferData"
+              ],
+              "attack_path": "攻击者部署恶意合约作为Bridge，在transferDataToPolkadot回调中重入transferData，由于状态变量更新（emit事件）在外部调用之后，且无重入保护，可多次触发跨链转账。",
+              "reasoning": "步骤0：无nonReentrant修饰符或ReentrancyGuard继承。步骤1：transferData函数中外部调用Bridge.transferDataToPolkadot，控制权交给外部合约。步骤2：外部调用后仅emit事件，无状态变量更新，但事件可被利用作为重入触发点，且无锁保护。步骤3：非modifier场景。步骤4：同一合约无其他可重入函数，但外部调用可回调transferData自身形成跨函数重入（攻击者合约可再次调用transferData）。步骤5：信息充分。步骤6：存在跨函数重入风险。"
+            }
+          },
+          {
+            "sample_id": "crosschain_reentrancy_pairs__05_cross_contract_reentrancy__fixed",
+            "category": "cross_contract_reentrancy",
+            "variant": "fixed",
+            "label": false,
+            "repeat_count": 3,
+            "correct_count": 0,
+            "error_count": 3,
+            "error_rate": 1.0,
+            "false_positive_count": 3,
+            "false_negative_count": 0,
+            "avg_confidence": 0.9167,
+            "avg_wrong_confidence": 0.9167,
+            "representative_error": {
+              "error_kind": "FP",
+              "predicted": true,
+              "confidence": 0.9,
+              "vulnerable_functions": [
+                "transferData"
+              ],
+              "attack_path": "攻击者部署恶意合约，调用transferData时，外部调用CosmosBridge.transferDataToCosmos将控制权交给攻击者控制的合约，攻击者在回调中再次调用transferData，由于状态更新（emit事件）在外部调用之后，且无重入保护，可导致重入攻击。",
+              "reasoning": "步骤0：未使用nonReentrant修饰符或继承ReentrancyGuard。步骤1：transferData函数中调用了外部合约CosmosBridge的transferDataToCosmos，将控制权交给外部。步骤2：外部调用后仅触发事件，无状态变量更新，但事件在外部调用之后，且无锁保护，可被重入。步骤3：不适用。步骤4：同一合约无其他可被回调触发的函数，但外部调用可重入自身函数。步骤5：信息充分。步骤6：存在跨合约重入漏洞。"
+            }
+          },
+          {
+            "sample_id": "crosschain_reentrancy_pairs__05_cross_contract_reentrancy__insecure",
+            "category": "cross_contract_reentrancy",
+            "variant": "insecure",
+            "label": true,
+            "repeat_count": 3,
+            "correct_count": 0,
+            "error_count": 3,
+            "error_rate": 1.0,
+            "false_positive_count": 0,
+            "false_negative_count": 3,
+            "avg_confidence": 0.0,
+            "avg_wrong_confidence": 0.0,
+            "representative_error": {
+              "error_kind": "FN",
+              "predicted": false,
+              "confidence": 0.0,
+              "vulnerable_functions": [],
+              "attack_path": "",
+              "reasoning": ""
+            }
+          },
+          {
+            "sample_id": "extra_reentrancy_pocs__cross_contract_reentrancy",
+            "category": "cross_contract_reentrancy",
+            "variant": "vulnerable",
+            "label": true,
+            "repeat_count": 3,
+            "correct_count": 0,
+            "error_count": 3,
+            "error_rate": 1.0,
+            "false_positive_count": 0,
+            "false_negative_count": 3,
+            "avg_confidence": 1.0,
+            "avg_wrong_confidence": 1.0,
+            "representative_error": {
+              "error_kind": "FN",
+              "predicted": false,
+              "confidence": 1.0,
+              "vulnerable_functions": [],
+              "attack_path": "",
+              "reasoning": "所有涉及外部调用的函数（deposit、swapAndDeposit、withdraw、withdrawAndSwap）均使用了nonReentrant修饰符，合约继承ReentrancyGuard，已受重入锁保护，无重入漏洞。"
+            }
+          },
+          {
+            "sample_id": "serial_coder__03_reentrancy_via_modifier__fixed",
+            "category": "reentrancy_via_modifier",
+            "variant": "fixed",
+            "label": false,
+            "repeat_count": 3,
+            "correct_count": 0,
+            "error_count": 3,
+            "error_rate": 1.0,
+            "false_positive_count": 3,
+            "false_negative_count": 0,
+            "avg_confidence": 0.95,
+            "avg_wrong_confidence": 0.95,
+            "representative_error": {
+              "error_kind": "FP",
+              "predicted": true,
+              "confidence": 0.95,
+              "vulnerable_functions": [
+                "receiveAirdrop"
+              ],
+              "attack_path": "攻击者部署恶意合约，在canReceiveAirdrop修饰符中调用IAirdropReceiver(msg.sender).canReceiveAirdrop()时，恶意合约回调receiveAirdrop函数，由于此时noReentrant锁尚未生效（修饰符执行顺序在noReentrant之前），且状态更新在函数体内部，导致重入攻击，多次领取空投。",
+              "reasoning": "步骤0：receiveAirdrop使用了noReentrant修饰符，但canReceiveAirdrop修饰符在noReentrant之前执行，锁未生效。步骤1：canReceiveAirdrop修饰符中调用了外部合约的canReceiveAirdrop()函数，将控制权交给攻击者。步骤2：状态更新（userBalances增加、receivedAirdrops标记）在函数体内部，位于外部调用之后。步骤3：外部调用在函数体执行前发生，且noReentrant锁尚未设置。步骤4：攻击者可利用同一函数重入。步骤5：信息充分。"
+            }
+          },
+          {
+            "sample_id": "serial_coder__04_cross_function_reentrancy__insecure",
+            "category": "cross_function_reentrancy",
+            "variant": "insecure",
+            "label": true,
+            "repeat_count": 3,
+            "correct_count": 0,
+            "error_count": 3,
+            "error_rate": 1.0,
+            "false_positive_count": 0,
+            "false_negative_count": 3,
+            "avg_confidence": 1.0,
+            "avg_wrong_confidence": 1.0,
+            "representative_error": {
+              "error_kind": "FN",
+              "predicted": false,
+              "confidence": 1.0,
+              "vulnerable_functions": [],
+              "attack_path": "",
+              "reasoning": "函数withdrawAll使用了noReentrant修饰符，合约继承ReentrancyGuard，该修饰符在执行函数体前上锁，阻止重入，因此已受保护，无漏洞。"
+            }
+          },
+          {
+            "sample_id": "serial_coder__05_cross_contract_reentrancy__insecure",
+            "category": "cross_contract_reentrancy",
+            "variant": "insecure",
+            "label": true,
+            "repeat_count": 3,
+            "correct_count": 0,
+            "error_count": 3,
+            "error_rate": 1.0,
+            "false_positive_count": 0,
+            "false_negative_count": 3,
+            "avg_confidence": 1.0,
+            "avg_wrong_confidence": 1.0,
+            "representative_error": {
+              "error_kind": "FN",
+              "predicted": false,
+              "confidence": 1.0,
+              "vulnerable_functions": [],
+              "attack_path": "",
+              "reasoning": "所有外部调用函数（deposit、withdrawAll）均使用了noReentrant修饰符，合约继承ReentrancyGuard，已受重入锁保护，无重入漏洞。"
+            }
+          },
+          {
+            "sample_id": "serial_coder__02_reentrancy__insecure",
+            "category": "standard_reentrancy",
+            "variant": "insecure",
+            "label": true,
+            "repeat_count": 3,
+            "correct_count": 1,
+            "error_count": 2,
+            "error_rate": 0.6667,
+            "false_positive_count": 0,
+            "false_negative_count": 2,
+            "avg_confidence": 0.3333,
+            "avg_wrong_confidence": 0.0,
+            "representative_error": {
+              "error_kind": "FN",
+              "predicted": false,
+              "confidence": 0.0,
+              "vulnerable_functions": [],
+              "attack_path": "",
+              "reasoning": ""
+            }
+          },
+          {
+            "sample_id": "crosschain_reentrancy_pairs__02_reentrancy__insecure",
+            "category": "standard_reentrancy",
+            "variant": "insecure",
+            "label": true,
+            "repeat_count": 3,
+            "correct_count": 2,
+            "error_count": 1,
+            "error_rate": 0.3333,
+            "false_positive_count": 0,
+            "false_negative_count": 1,
+            "avg_confidence": 0.6667,
+            "avg_wrong_confidence": 0.0,
+            "representative_error": {
+              "error_kind": "FN",
+              "predicted": false,
+              "confidence": 0.0,
+              "vulnerable_functions": [],
+              "attack_path": "",
+              "reasoning": ""
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

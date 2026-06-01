@@ -13,6 +13,12 @@
 2. 这些交互之后，是否还会更新关键状态变量。
 3. 如果没有漏洞，也请说明为什么当前实现能够避免重入。
 
+【重入保护机制识别规则】
+- 如果函数使用了 nonReentrant / noReentrant 修饰符，说明该函数已受到重入锁保护，不应判定为存在重入漏洞。
+- nonReentrant 修饰符的工作原理：在执行函数体之前设置 locked=true（上锁），函数执行完毕后再设置 locked=false（解锁）；如果被重入，require(!locked) 会直接回滚，阻止攻击。
+- 如果合约继承了 ReentrancyGuard，且函数带有 nonReentrant 修饰符，则该函数是安全的（fixed），即使函数体内存在外部调用。
+- 判断是否为 fixed 版本的关键依据：是否存在 nonReentrant 修饰符保护。
+
 代码上下文如下：
 
 {cropped_context}

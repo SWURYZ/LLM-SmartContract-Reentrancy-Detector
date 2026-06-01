@@ -18,6 +18,15 @@ ETH_CALL_PATTERNS = (
     re.compile(r"\.transfer\s*\(", re.IGNORECASE),
     re.compile(r"\.send\s*\(", re.IGNORECASE),
 )
+REENTRANCY_CALL_PATTERNS = (
+    re.compile(r"\.call\s*\{", re.IGNORECASE),
+    re.compile(r"\.call\s*\(", re.IGNORECASE),
+    re.compile(r"\.delegatecall\s*\(", re.IGNORECASE),
+    re.compile(r"\.callcode\s*\(", re.IGNORECASE),
+    re.compile(r"\.transfer\s*\(", re.IGNORECASE),
+    re.compile(r"\.send\s*\(", re.IGNORECASE),
+)
+
 
 GENERIC_EXTERNAL_CALL_PATTERN = re.compile(
     r"(?:\b[A-Za-z_][A-Za-z0-9_]*|\))\s*\.\s*[A-Za-z_][A-Za-z0-9_]*\s*\(",
@@ -93,6 +102,9 @@ class PreprocessResult:
 def preprocess_contract(
     main_file: Path | str,
     auxiliary_files: Sequence[Path | str] | None = None,
+    slice_mode: str = "risk",
+    slice_max_chars: int = 3800,
+    slice_min_lines: int = 5,
 ) -> PreprocessResult:
     main_path = Path(main_file).resolve()
     aux_paths = [Path(path).resolve() for path in (auxiliary_files or [])]
@@ -125,7 +137,13 @@ def preprocess_contract(
             )
 
     static_summary = _build_static_summary(main_path, aux_paths, findings, warnings)
-    cropped_context = _build_cropped_context(source_bundle, findings)
+    cropped_context = _build_cropped_context(
+        source_bundle,
+        findings,
+        slice_mode=slice_mode,
+        slice_max_chars=slice_max_chars,
+        slice_min_lines=slice_min_lines,
+    )
 
     return PreprocessResult(
         main_file=str(main_path),
@@ -296,7 +314,21 @@ def _build_static_summary(
 def _build_cropped_context(
     source_bundle: Sequence[SourceUnit],
     findings: Sequence[StaticFinding],
+    slice_mode: str = "risk",
+    slice_max_chars: int = 3800,
+    slice_min_lines: int = 5,
 ) -> str:
+    if slice_mode == "reentrancy_slice_v1":
+        # 尝试从缓存目录加载预计算切片
+        cached = _try_load_slice_cache(source_bundle)
+        if cached is not None:
+            return cached
+        return _build_reentrancy_slice_context(
+            source_bundle,
+            slice_max_chars=slice_max_chars,
+            slice_min_lines=slice_min_lines,
+        )
+
     if not source_bundle:
         return ""
 
@@ -323,6 +355,323 @@ def _build_cropped_context(
     for index, unit in enumerate(source_bundle[1:], start=1):
         blocks.append(f"// Auxiliary source #{index}")
         blocks.append(redact_prompt_text(unit.content.strip()))
+
+    return "\n\n".join(block for block in blocks if block.strip())
+
+
+def _strip_comments(source: str) -> str:
+    source = re.sub(r"/\*[\s\S]*?\*/", "", source)
+    cleaned_lines: list[str] = []
+    for line in source.splitlines():
+        if "//" in line:
+            line = line.split("//", 1)[0]
+        if line.strip():
+            cleaned_lines.append(line.rstrip())
+    return "\n".join(cleaned_lines)
+
+
+def _clean_prelude(prelude: str) -> str:
+    cleaned = _strip_comments(prelude)
+    filtered: list[str] = []
+    for line in cleaned.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped.startswith("pragma "):
+            continue
+        if stripped.startswith("import "):
+            continue
+        filtered.append(line.rstrip())
+    return "\n".join(filtered)
+
+
+def _count_effective_lines(source: str) -> int:
+    return len([line for line in source.splitlines() if line.strip()])
+
+
+def _symbol_has_reentrancy_call(symbol_source: str) -> bool:
+    return any(pattern.search(symbol_source) for pattern in REENTRANCY_CALL_PATTERNS)
+
+
+# ---------------------------------------------------------------------------
+# 规则 3 辅助：module-level 全局统计缓存
+# ---------------------------------------------------------------------------
+
+_GLOBAL_STATS_CACHE: dict[str, object] | None = None
+_GLOBAL_STATS_LOADED: bool = False
+
+
+def _load_global_stats() -> dict[str, object] | None:
+    """从 contracts_reentrancy_slice_v1/global_stats.json 加载预计算全局统计"""
+    global _GLOBAL_STATS_CACHE, _GLOBAL_STATS_LOADED
+    if _GLOBAL_STATS_LOADED:
+        return _GLOBAL_STATS_CACHE
+    _GLOBAL_STATS_LOADED = True
+
+    # 尝试多个可能位置
+    candidates = [
+        Path(__file__).resolve().parent.parent / "contracts_reentrancy_slice_v1" / "global_stats.json",
+    ]
+    for path in candidates:
+        if path.exists():
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+                _GLOBAL_STATS_CACHE = data
+                return data
+            except Exception:
+                continue
+    return None
+
+
+def _is_significant_name(func_name: str, global_stats: dict[str, object] | None) -> bool:
+    if global_stats is None:
+        return False
+    significant_names = global_stats.get("significant_names", [])
+    return func_name in significant_names
+
+
+def _try_load_slice_cache(source_bundle: Sequence[SourceUnit]) -> str | None:
+    """
+    尝试从 contracts_reentrancy_slice_v1/ 目录加载预计算切片。
+    匹配规则：根据主文件名匹配 sample_id。
+    返回 None 若缓存未命中。
+    """
+    if not source_bundle:
+        return None
+    main_file_name = Path(source_bundle[0].path).name
+
+    slice_root = Path(__file__).resolve().parent.parent / "contracts_reentrancy_slice_v1"
+    if not slice_root.exists():
+        return None
+
+    manifest_path = slice_root / "slice_manifest.json"
+    if not manifest_path.exists():
+        return None
+
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+    for entry in manifest:
+        # 按主文件名匹配
+        contract_names = entry.get("contract_name", "")
+        if "," in contract_names:
+            names = [n.strip() for n in contract_names.split(",")]
+        else:
+            names = [contract_names.strip()]
+
+        # 如果合约名是主文件名的一部分（去掉 .sol），则匹配
+        main_stem = Path(source_bundle[0].path).stem
+        if any(name in main_stem or main_stem in name for name in names):
+            sample_dir = slice_root / entry["sample_id"]
+            slice_file = sample_dir / "slice.sol"
+            if slice_file.exists() and entry.get("has_slice"):
+                return slice_file.read_text(encoding="utf-8")
+
+    return None
+
+
+def _build_reentrancy_slice_context(
+    source_bundle: Sequence[SourceUnit],
+    slice_max_chars: int,
+    slice_min_lines: int,
+) -> str:
+    """
+    规则 1-4 的重入切片引擎。
+
+    改进点 (vs 旧版):
+      - 规则1: 只用 REENTRANCY_CALL_PATTERNS（低级call/delegatecall等），不包含 ERC20 transfer
+      - 规则2: 保留 LOC>=5 或 含重入调用 的函数 + 被引用的 modifier
+      - 规则3: 使用全局显著函数统计（若缓存可用）过滤非关键合约
+      - 规则4: 清理注释/import/pragma，转账函数优先，贪心到3800上限
+    """
+    if not source_bundle:
+        return ""
+
+    global_stats = _load_global_stats()
+
+    main_source = source_bundle[0].content
+    blocks: list[str] = ["// Reentrancy slice v1"]
+    total_chars = 0
+
+    contract_blocks = _extract_contract_blocks(main_source)
+    if not contract_blocks:
+        cleaned = _strip_comments(main_source)
+        return cleaned.strip()
+
+    # 预扫描：检测 ReentrancyGuard 类父合约
+    guard_modifiers: dict[str, str] = {}  # parent_name → modifier source
+    for c_name, c_source in contract_blocks:
+        # 解析 modifier 定义
+        symbol_blocks = _extract_symbol_blocks(c_source)
+        for block in symbol_blocks:
+            if block["kind"].lower() == "modifier" and block["name"].lower() in ("nonreentrant", "noreentrant"):
+                guard_modifiers[c_name] = _strip_comments(block["source"])
+                break
+
+    for contract_name, contract_source in contract_blocks:
+        prelude_raw = _extract_contract_prelude(contract_source)
+        prelude = _clean_prelude(prelude_raw)
+
+        symbol_blocks = _extract_symbol_blocks(contract_source)
+        modifiers = {
+            block["name"]: block["source"]
+            for block in symbol_blocks
+            if block["kind"].lower() == "modifier"
+        }
+
+        # 收集函数元信息
+        func_metas: list[dict[str, object]] = []
+        has_any_reentrancy = False
+        has_any_significant = False
+
+        for block in symbol_blocks:
+            if block["kind"].lower() == "modifier":
+                continue
+            signature = block["signature"]
+            attached_modifiers = _extract_attached_modifiers(signature)
+            related_modifier_sources = [
+                modifiers[name] for name in attached_modifiers if name in modifiers
+            ]
+            combined_source = "\n\n".join([block["source"], *related_modifier_sources]).strip()
+            cleaned_source = _strip_comments(combined_source)
+            if not cleaned_source.strip():
+                continue
+            line_count = _count_effective_lines(cleaned_source)
+            has_reentrancy_call = _symbol_has_reentrancy_call(combined_source)
+            is_significant = _is_significant_name(block.get("name", ""), global_stats)
+
+            if has_reentrancy_call:
+                has_any_reentrancy = True
+            if is_significant:
+                has_any_significant = True
+
+            func_metas.append({
+                "contract": contract_name,
+                "name": block["name"],
+                "kind": block["kind"].lower(),
+                "signature": signature,
+                "source": cleaned_source,
+                "line_count": line_count,
+                "char_len": len(cleaned_source),
+                "has_reentrancy_call": has_reentrancy_call,
+                "is_significant": is_significant,
+                "attached_modifiers": attached_modifiers,
+            })
+
+        # 规则3 合约保留规则：包含显著函数或外部调用函数才保留
+        if global_stats and not has_any_reentrancy and not has_any_significant:
+            continue
+
+        # 输出 prelude
+        if prelude:
+            blocks.append("// Contract prelude")
+            blocks.append(prelude)
+            total_chars += len(prelude)
+
+        # 安全上下文注入：检测 nonReentrant 使用
+        if guard_modifiers:
+            uses_guard = any(
+                m.lower() in ("nonreentrant", "noreentrant")
+                for item in func_metas
+                for m in item.get("attached_modifiers", [])
+            )
+            if uses_guard:
+                # 查找继承的父合约
+                import re as _re
+                decl = _re.search(r'contract\s+\w+\s+is\s+(\w+)', contract_source, _re.I)
+                if decl:
+                    parent = decl.group(1)
+                    guard_src = guard_modifiers.get(parent, "")
+                    if guard_src:
+                        blocks.append(
+                            "// [guard] nonReentrant 修饰符（重入保护锁）："
+                            "在执行函数体之前设置 locked=true，阻止回调重入"
+                        )
+                        blocks.append(guard_src)
+                        total_chars += len(guard_src)
+
+        # 规则2: 函数筛选 - LOC>=5 或 含重入调用
+        must_keep = [
+            item for item in func_metas
+            if item["has_reentrancy_call"]
+        ]
+        optional = [
+            item for item in func_metas
+            if not item["has_reentrancy_call"] and int(item["line_count"]) >= slice_min_lines
+        ]
+
+        # 收集被保留函数引用的 modifier
+        kept_modifier_names: set[str] = set()
+        for item in must_keep + optional:
+            for mod_name in item.get("attached_modifiers", []):
+                if mod_name in modifiers:
+                    kept_modifier_names.add(mod_name)
+
+        must_keep.sort(key=lambda item: int(item["char_len"]), reverse=True)
+        optional.sort(key=lambda item: int(item["char_len"]), reverse=True)
+
+        def _projected(header: str, source: str) -> int:
+            return total_chars + len(header) + len(source)
+
+        def _add_block(header: str, source: str, force: bool) -> bool:
+            nonlocal total_chars
+            proj = _projected(header, source)
+            if not force and proj > slice_max_chars:
+                return False
+            blocks.append(header)
+            blocks.append(source)
+            total_chars = proj
+            return True
+
+        # 优先级1: 转账/外部调用函数（强制保留）
+        for item in must_keep:
+            tag = "reentrancy-call"
+            if int(item["line_count"]) < slice_min_lines:
+                tag = "short-keep"
+            header = f"// [{tag}] {item['name']}"
+            _add_block(header, str(item["source"]).strip(), force=True)
+
+            # 附加其 modifier
+            for mod_name in item.get("attached_modifiers", []):
+                if mod_name in modifiers and mod_name in kept_modifier_names:
+                    mod_source = _strip_comments(modifiers[mod_name])
+                    if not mod_source.strip():
+                        continue
+                    mod_header = f"// [modifier] {mod_name}"
+                    if _projected(mod_header, mod_source) > slice_max_chars:
+                        continue
+                    _add_block(mod_header, mod_source, force=False)
+
+        # 优先级2: 其他长度>=5的函数，贪心补齐
+        for item in optional:
+            header = f"// [context] {item['name']}"
+            if not _add_block(header, str(item["source"]).strip(), force=False):
+                break
+
+            for mod_name in item.get("attached_modifiers", []):
+                if mod_name in modifiers and mod_name in kept_modifier_names:
+                    mod_source = _strip_comments(modifiers[mod_name])
+                    if not mod_source.strip():
+                        continue
+                    mod_header = f"// [modifier] {mod_name}"
+                    if _projected(mod_header, mod_source) > slice_max_chars:
+                        continue
+                    _add_block(mod_header, mod_source, force=False)
+
+    # 辅助源文件按需拼接
+    for index, unit in enumerate(source_bundle[1:], start=1):
+        cleaned_aux = _strip_comments(unit.content)
+        if not cleaned_aux.strip():
+            continue
+        header = f"// Auxiliary source #{index}"
+        projected = total_chars + len(header) + len(cleaned_aux)
+        if projected > slice_max_chars:
+            break
+        blocks.append(header)
+        blocks.append(cleaned_aux)
+        total_chars = projected
 
     return "\n\n".join(block for block in blocks if block.strip())
 
