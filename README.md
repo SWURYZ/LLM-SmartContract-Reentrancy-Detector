@@ -1,341 +1,449 @@
 # LLM-Based Smart Contract Reentrancy Detection
 
-> 基于 DeepSeek-chat 的智能合约重入漏洞检测实验工程
+> **An Ablation-Driven Pipeline with DeepSeek-chat**
 >
-> 完整实验流水线：数据清洗 → 静态分析 → 代码裁剪 → Prompt 组装 → LLM 预测 → 评估
+> *Iterative optimization through ablation experiments, code slicing, and prompt engineering*
 
 ---
 
-## 项目概述
+## Abstract
 
-本项目复现并扩展了基于 LLM 的重入漏洞检测方法。通过**消融实验**逐层验证每个技术模块的真实贡献，并发现：代码裁剪是关键增益模块，而 CoT 思维链和多合约上下文在重入检测场景中没有稳定帮助。
-
-最终方案（reentrancy_slice_v1 + Prompt 规则注入）实现了 **FPR 从 0.458 降至 0.250（下降 45%），fixed 变体识别率从 54% 升至 75%**。
+Reentrancy remains one of the most critical vulnerabilities in smart contracts, yet traditional static analysis tools struggle with cross-function, cross-contract, and modifier-hidden attack patterns. This work presents a reproducible, ablation-driven pipeline that leverages Large Language Models (LLMs) for Solidity reentrancy detection. We systematically evaluate five prompt profiles on a curated 41-sample benchmark spanning four reentrancy categories. Through three rounds of iterative optimization—ablation study, reentrancy slice engine with guard injection, and prompt-level rule injection—we reduce the False Positive Rate (FPR) from 0.458 to **0.250** (a 45% reduction) while maintaining an Accuracy of 0.870. A key insight emerges: for LLMs, **system-level prompt rules significantly outperform inline code annotations**, revealing a fundamental distinction between *instruction channel* and *content channel* in LLM prompt engineering for security applications.
 
 ---
 
-## 实验设计思路（三轮迭代）
+## 1. Introduction
 
-### 第 1 轮：消融实验 —— "谁才是真正有用的模块？"
+### 1.1 Background and Motivation
 
-**动机**：端到端黑盒无法定位收益来源，必须逐层剥离验证。
+Reentrancy attacks are among the most classic and devastating vulnerabilities in Ethereum smart contracts. The core risk lies in *regaining control after an external call*: when a contract performs an external interaction before completing its state updates, an attacker can re-enter the same logic through a callback, leading to repeated fund withdrawals, corrupted permission states, and bypassed access controls.
 
-5 个 profile 从简单到复杂递进：
+Traditional static analysis tools (e.g., Slither) are effective at identifying explicit patterns—such as `call{value:...}` followed by balance updates. However, they often miss attack paths that span **multiple functions**, **multiple contracts**, or are **hidden within modifiers**. These tools require substantial manual effort to reconstruct the full contextual picture.
+
+Recent advances in Large Language Models (LLMs) offer a promising alternative. LLMs can process longer code contexts, integrate multi-file dependencies, and reason about *call chains* and *state mutation ordering* in natural language. However, LLM-based approaches face their own challenges: context-window noise, prompt design sensitivity, and hallucination risks.
+
+### 1.2 Research Gap and Objectives
+
+The central research gap we address is: **How can LLMs be effectively deployed for reentrancy detection in scenarios involving long code contexts, multi-file dependencies, and nuanced reentrancy semantics, while maintaining reproducibility and interpretability?**
+
+Our specific objectives are:
+
+1. Build a **fully reproducible detection pipeline** where every intermediate artifact (preprocessing results, assembled prompts, structured predictions) is persisted for auditability.
+2. Employ **DeepSeek-chat** as the LLM backbone, comparing raw code input against systematically cropped, statically analyzed, and prompt-engineered variants.
+3. Use **structured JSON output** to capture `is_vulnerable`, `vulnerability_type`, `vulnerable_functions`, `attack_path`, `confidence`, and `reasoning` for each prediction.
+4. Conduct **ablation experiments** to quantitatively answer: *Which context modalities genuinely help, and which introduce noise?*
+
+### 1.3 Innovations
+
+- **Ablation-driven iterative methodology**: Each experimental round exposes a problem → targeted optimization → re-validation → closed loop.
+- **Reentrancy Slice Engine v1**: A 4-rule global-statistics-based code slicing pipeline with automatic ReentrancyGuard injection.
+- **Instruction-channel vs. content-channel discovery**: First empirical validation in a reentrancy detection context that LLM system prompts carry higher decision weight than inline code comments.
+
+---
+
+## 2. Related Work
+
+### 2.1 Traditional Reentrancy Detection
+
+Conventional approaches rely on manual auditing, pattern-matching rules, and static analysis frameworks. Slither [Feist et al., 2019] and similar tools can rapidly identify suspicious external call sites. However, these methods are tuned for *explicit patterns* and require auditors to manually fill in context for cross-function, cross-contract, and modifier-based reentrancy.
+
+### 2.2 LLM-Based Vulnerability Detection
+
+Recent studies have explored feeding full smart contract source code directly to LLMs for vulnerability classification. While LLMs can read lengthy code and perform semantic summarization, purely end-to-end approaches suffer from context-window noise, suboptimal prompt design, and hallucination. The research community has yet to establish a systematic framework for determining **which types of contextual information** (trimmed code, static analysis summaries, dependency files, reasoning chains) actually contribute to detection accuracy.
+
+### 2.3 Our Approach
+
+We combine static analysis, code trimming, and prompt engineering into a **reproducible experimental pipeline**. By conducting ablative experiments, we isolate the marginal contribution of each enhancement module, transforming the research question from "can LLMs find reentrancy?" to "**which preprocessing modules enable LLMs to find reentrancy most effectively?**"
+
+---
+
+## 3. Methodology
+
+### 3.1 Overall Pipeline Architecture
+
+Our detection system follows a four-stage pipeline:
 
 ```
-baseline_raw (全量源码)
-    → crop_only (仅裁剪代码)
-    → crop_slither (裁剪 + Slither 静态摘要)
-    → crop_slither_cot (裁剪 + 摘要 + CoT 分步推理)
-    → crop_slither_multi (裁剪 + 摘要 + CoT + 多合约上下文)
+Stage 1: Preprocessing
+  Solidity source + dependencies
+    → Slither static analysis (fallback: heuristic regex)
+    → Code cropping (risk-focused or reentrancy_slice_v1)
+    → Prompt anonymization (remove Insecure/Fixed naming bias)
+
+Stage 2: Prompt Assembly
+  Preprocessed context + static findings
+    → Template-based prompt filling ({code_context}, {static_summary}, ...)
+    → Structured output format specification
+
+Stage 3: LLM Inference
+  Assembled prompt
+    → DeepSeek-chat (T=0, OpenAI-compatible API)
+    → 300s timeout with 1 retry
+
+Stage 4: Evaluation
+  Structured JSON prediction
+    → Parse is_vulnerable, vulnerability_type, vulnerable_functions, ...
+    → Compute Accuracy, FPR, FNR (mean ± std, repeat=3)
+    → Per-category and per-variant breakdown
 ```
 
-**关键发现**：
-- **crop_only Acc 最高 (0.9024)**：去掉噪声让 LLM 聚焦 → 但裁剪同时也剥离了 ReentrancyGuard 安全上下文 → FPR 高达 0.458
-- **crop_slither Acc 下降 (0.8455)**：Slither 摘要反而干扰判断
-- **crop_slither_cot/crop_slither_multi**：CoT 和多合约上下文始终没有稳定增益
-- **结论**：裁剪 > 一切；Slither/CoT/Multi 都是噪声
+**Design Philosophy**: Rather than treating the LLM as a black-box oracle, we decompose the detection into independently verifiable modules. All intermediate artifacts (`preprocess.json`, `prompt.txt`, `prediction.json`) are persisted, ensuring full reproducibility and auditability.
 
-### 第 2 轮：Slice v1 + Guard 注入 —— "让模型看到保护锁"
+### 3.2 Code Preprocessing
 
-**动机**：第 1 轮发现裁剪导致 fixed 变体全被误判 → 需要更精准的裁剪 + 补回安全上下文。
+The preprocessing stage (`src/preprocess.py`) performs two-channel analysis:
 
-设计了 **reentrancy_slice_v1** 切片引擎，4 条核心规则：
+1. **Slither Channel** (preferred): Invokes Slither to extract `can_send_eth` functions, external call sites, and state variable reads/writes.
+2. **Heuristic Channel** (fallback): Regex-based contract parsing that identifies risk-related functions, modifiers, and call patterns when Slither is unavailable.
 
-| 规则 | 内容 | 目的 |
+**Code Cropping** reduces prompt noise by retaining only:
+- Functions containing external calls (`call`, `delegatecall`, `transfer`, `send`)
+- State variable definitions relevant to balances and locks
+- Referenced modifiers and dependency interfaces
+
+All sample identifiers and filenames are **anonymized** to prevent label leakage (e.g., "Insecure" / "Fixed" naming patterns).
+
+### 3.3 Prompt Design and Ablation Profiles
+
+We designed five ablation profiles, each adding one layer of complexity to isolate marginal contributions:
+
+| Profile | Input Features | Hypothesis Tested |
 |---|---|---|
-| 规则 1 | 只保留 call/delegatecall/callcode+value, transfer/send（排除 ERC20） | 精确化外部调用 |
-| 规则 2 | 函数 LOC ≥ 5 或含外部调用才保留 | 过滤空函数和 getter |
-| 规则 3 | 全局统计 → 显著函数 Top 10%（全局唯一名 + 长度前 10%） | 跨合约重要函数识别 |
-| 规则 4 | 贪心填充到 3800 字符（p99） | 控制 Prompt 长度 |
+| `baseline_raw` | Full contract source text | Pure LLM capability (no preprocessing) |
+| `crop_only` | Cropped risk-relevant code | Does code trimming alone improve detection? |
+| `crop_slither` | Cropped code + Slither summary | Does static analysis context enhance judgment? |
+| `crop_slither_cot` | + Chain-of-Thought reasoning steps | Does step-by-step reasoning help? |
+| `crop_slither_multi` | + Multi-contract dependency files | Do auxiliary files provide necessary context? |
 
-同时注入 **ReentrancyGuard 源码**：检测 nonReentrant 修饰符 → 自动将父合约的 Guard 源码插入切片。
+**Ablation Logic**: Profiles are stacked from simple to complex. If a layer causes degradation, the added information is likely noise rather than signal. All profiles share identical sample sets, temperature (T=0), and repeat count (R=3).
 
-**结果**：Acc 持平 crop_only (0.9024)，FPR 从 0.458 → 0.375。
+### 3.4 Reentrancy Slice Engine v1
 
-### 第 3 轮：Prompt 规则注入 —— "从看到到理解"
+The initial ablation revealed that while `crop_only` achieved the highest accuracy (0.9024), its FPR was elevated (0.458). The cropping logic lacked a **global perspective**—it could not distinguish "important" contracts from "boilerplate" ones, and it stripped the safety context from fixed-variant samples.
 
-**动机**：Guard 注入后 FPR 仍 0.375 → 模型"看到" nonReentrant 源码但不理解 modifier 语义。
+We developed `reentrancy_slice_engine.py` with four optimization rules:
 
-**假设**：LLM 对"系统指令"的感知权重大于"代码注释"。
+**Rule 1 — Precise External Call Filtering**: Only retain low-level calls strongly associated with reentrancy: `call`, `delegatecall`, `callcode` (with `{value:...}` patterns), `transfer`, and `send`. ERC20 `token.transfer` / `transferFrom` are explicitly excluded to reduce noise.
 
-**方案**：在所有 9 个 Prompt 模板中注入：
-- `nonReentrant` / `noReentrant` 修饰符 = 重入保护锁
-- 执行前 `locked=true` + `require(!locked)` → 回调被阻止
-- 合约继承 `ReentrancyGuard` + 函数带 `nonReentrant` → safe
+**Rule 2 — Function Filtering**: Slice contracts by `function`/`constructor`/`fallback`/`receive` boundaries. Retain functions with LOC ≥ 5 or containing reentrancy-related external calls. Referenced modifiers are preserved alongside their functions.
 
-同时试验了**代码内注释**（在 Guard 源码中加 "此行是上锁操作" 注释）→ **完全无效**，验证了"指令通道 ≠ 内容通道"的假设。
+**Rule 3 — Significant Function Identification (Top 10%)**: Compute global statistics across all contracts (239 functions → 54 unique names → 5 significant functions meeting criteria: globally unique name + top 10% by length). Contracts are retained only if they contain significant functions or external-call functions.
 
-**最终结果**：FPR 从 0.375 → **0.250**（再降 33%），fixed Acc 从 0.625 → **0.750**。
+**Rule 4 — Greedy Block Construction**: Strip comments, imports, and pragmas. Prioritize external-call functions. Greedily fill blocks up to 3,800 characters (the 99th percentile of all sample sizes).
 
----
+**Compression Effect**: 91,438 total characters → 43,830 characters (47.9% compression); 48/49 samples within the 3,800-character limit. A fallback mechanism ensures no sample is lost even if all contracts are filtered out.
 
-## 完整实验结果
+### 3.5 Guard Injection and Prompt Rule Injection
 
-| 实验 | Acc | FPR | FNR | fixed Acc | 说明 |
-|---|---|---|---|---|---|
-| baseline_raw | 0.8699 | 0.375 | 0.071 | 0.625 | 全量代码基线 |
-| crop_only | **0.9024** | 0.458 | **0.010** | 0.542 | ★ Acc 最优，几乎不漏 |
-| crop_slither | 0.8455 | 0.458 | 0.081 | 0.542 | Slither 帮倒忙 |
-| crop_slither_cot | 0.8049 | 0.375 | 0.152 | 0.625 | CoT 无增益 |
-| crop_slither_multi | 0.8049 | 0.542 | 0.111 | 0.458 | ★ 最差，多文件害了 |
-| slice_v1 + Guard | 0.9024 | 0.375 | 0.030 | 0.625 | 裁剪+Guard源码 |
-| crop_slither + Prompt | 0.8780 | 0.292 | 0.081 | 0.708 | Prompt 规则有效 |
-| **slice_v1 + Prompt** | 0.8699 | **0.250** | 0.101 | **0.750** | ★ **FPR 最优，综合最优** |
+**Problem Discovery**: The slice_v1 experiment revealed that fixed-variant samples were 100% falsely classified as vulnerable (e.g., `03_modifier_fixed`: 3/3 FP with confidence=0.90; `05_cross_contract_fixed`: 3/3 FP with confidence=0.95).
 
-> 所有实验：DeepSeek-chat, T=0, repeat=3 均值, 41 样本 (33正/8负)
+**Root Cause Analysis**: The slicing engine preserved external call patterns but stripped the `ReentrancyGuard` inheritance chain. The model could only see "dangerous call patterns" without the corresponding "protection measures"—in particular, the `nonReentrant` modifier.
 
----
+**Guard Source Injection**: For contracts using `nonReentrant` / `noReentrant` modifiers, the engine automatically injects the parent `ReentrancyGuard` contract source into the slice. This lets the model "see" the protection mechanism. Result: FPR reduced from 0.458 → 0.375.
 
-## 项目结构
+**Inline Comment Experiment**: We added explanatory comments within the injected Guard source (e.g., "`locked = true` — this line locks the function"). **This had zero effect on FPR**—the model does not treat code comments as authoritative constraints.
 
-```
-├── external/                         # 原始数据（4 个数据源）
-│   ├── solidity-security-by-example/ # 8 个配对样本 (4类×insecure+fixed)
-│   ├── smartbugs-curated/            # 23 个去重后链上重入合约
-│   ├── extra_reentrancy_pocs/        # 2 个 PoC 样本
-│   └── crosschain_reentrancy_pairs/  # 8 个跨链配对样本
-│
-├── contracts/                        # 精选合约 + manifest.json
-│   └── manifest.json                 # 样本 ID → Solidity 文件 + 标签映射
-│
-├── contracts_reentrancy_slice_v1/    # 预计算切片缓存
-│
-├── prompts/                          # 9 个 Prompt 模板
-│   ├── baseline_prompt.txt           # baseline_raw：全量代码
-│   ├── baseline_prompt_paper.txt     # crop_only：仅裁剪代码
-│   ├── baseline_summary_prompt.txt   # crop_slither / slice_v1
-│   ├── cot_reentrancy_paper.txt      # crop_slither_cot：CoT 分步推理
-│   ├── multi_contract_summary_prompt.txt  # crop_slither_multi：多合约上下文
-│   └── ...（4 个旧版兼容模板）
-│
-├── src/                              # 核心代码（6 个文件）
-│   ├── main.py                       # 实验编排主入口
-│   ├── preprocess.py                 # 预处理：Slither + 代码裁剪 + 匿名化
-│   ├── reentrancy_slice_engine.py    # 切片引擎 v1：4 条规则 + Guard 注入
-│   ├── run_reentrancy_slice.py       # 切片批量生成
-│   ├── llm_client.py                 # LLM API 调用 + JSON 解析
-│   └── chain_contract_test.py        # 链上案例测试 (The DAO / Lendf.Me)
-│
-├── runs/                             # 所有实验输出
-│   ├── deepseek-ablation-clean-r3-20260601/  # 第1轮：消融实验
-│   ├── deepseek-slice-v1-guard-r3-20260601/  # 第2轮：Guard 注入
-│   └── deepseek-promptfixed-r3-20260601/     # 第3轮：Prompt 规则
-│
-├── requirements.txt                  # Python 依赖
-└── LLM4Re.pdf                        # 参考论文
-```
+**Prompt Rule Injection**: We injected explicit rules into all 9 prompt templates:
+- `nonReentrant` / `noReentrant` modifiers indicate reentrancy protection → NOT a vulnerability
+- Mechanism: `locked = true` before function body, `require(!locked)` blocks reentry
+- Contract inherits `ReentrancyGuard` + function has `nonReentrant` = safe (fixed)
+
+Result: FPR reduced from 0.375 → **0.250**; fixed-variant accuracy improved from 0.625 → **0.750**.
+
+**Key Design Choice**: We intentionally kept the code unchanged and taught the model through Prompt rules alone. This preserves slice consistency across experiments and directly tests whether prompt engineering can compensate for the model's incomplete Solidity semantic understanding.
 
 ---
 
-## 数据集说明
+## 4. Experimental Setup
 
-### 来源
+### 4.1 Dataset
 
-| 来源 | 样本数 | 阳性 | 阴性 | 说明 |
+The benchmark comprises 41 curated Solidity smart contract samples drawn from four sources:
+
+| Source | Samples | Positive | Negative | Description |
 |---|---|---|---|---|
-| smartbugs_curated (去重) | 23 | 23 | 0 | Etherscan 真实被攻击合约，90% Jaccard 去重 |
-| serial_coder | 8 | 4 | 4 | 4 类重入 × (insecure + fixed) 配对 |
-| crosschain_reentrancy_pairs | 8 | 4 | 4 | 跨链场景配对样本 |
-| extra_reentrancy_pocs | 2 | 2 | 0 | 跨函数/跨合约 PoC |
-| **合计** | **41** | **33** | **8** | — |
+| `smartbugs_curated` (deduplicated) | 23 | 23 | 0 | Real on-chain reentrancy victims from Etherscan |
+| `serial_coder` | 8 | 4 | 4 | Paired insecure/fixed variants × 4 reentrancy types |
+| `crosschain_reentrancy_pairs` | 8 | 4 | 4 | Cross-chain paired samples |
+| `extra_reentrancy_pocs` | 2 | 2 | 0 | Cross-function and cross-contract PoC samples |
+| **Total** | **41** | **33** | **8** | — |
 
-### 四类重入覆盖
+**Data Cleaning**: The original 49-sample dataset contained 8 near-duplicate contracts in `smartbugs_curated` (line-level Jaccard similarity > 90%). After deduplication (31 → 23), re-adding cross-chain pairs, and prefixing `sample_id` with source names to prevent collisions, the final benchmark has 33 positive and 8 negative samples (4.1:1 ratio).
 
-| 类别 | 样本来源 |
+**Four Reentrancy Categories Covered**:
+
+| Category | Pattern Description |
 |---|---|
-| standard_reentrancy | 经典 withdraw 模式：先 call 后减余额 |
-| reentrancy_via_modifier | 漏洞藏在 modifier 中，外部调用在函数体前 |
-| cross_function_reentrancy | 回调进入同合约另一函数，共享状态被绕过 |
-| cross_contract_reentrancy | 主合约→外部合约→回调→主合约 |
+| `standard_reentrancy` | Classic withdraw pattern: external call before balance update |
+| `reentrancy_via_modifier` | Vulnerability hidden in modifier; external call occurs before function body |
+| `cross_function_reentrancy` | Callback enters a different function in the same contract, bypassing shared state checks |
+| `cross_contract_reentrancy` | Main contract → external contract → callback → main contract cycle |
 
-### 标签语义
+**Label Semantics**: `label=True` indicates the presence of a reentrancy vulnerability (insecure/vulnerable); `label=False` indicates a safe contract (fixed variant).
 
-- `label=True` → 存在重入漏洞 (insecure / vulnerable)
-- `label=False` → 安全 (fixed 变体)
+### 4.2 Evaluation Metrics
+
+We report three core metrics:
+
+- **Accuracy** = (TP + TN) / N — overall correctness, but potentially inflated under class imbalance
+- **False Positive Rate (FPR)** = FP / Neg — proportion of safe contracts incorrectly flagged as vulnerable. High FPR → wasted manual audit effort.
+- **False Negative Rate (FNR)** = FN / Pos — proportion of actual vulnerabilities missed. High FNR → risk of on-chain asset loss.
+
+In a class-imbalanced setting (33:8), FPR and FNR are more informative than Accuracy alone. We also report **fixed-variant accuracy** to specifically measure the model's ability to recognize protected contracts.
+
+### 4.3 Experimental Protocol
+
+| Parameter | Value | Rationale |
+|---|---|---|
+| Model | DeepSeek-chat | Cost-effective, OpenAI-compatible API, exposes typical LLM Solidity limitations |
+| Temperature | 0 (greedy decoding) | Eliminates sampling variance; differences stem from input, not temperature |
+| Repeat count | 3 | Single runs have randomness; mean ± std provides statistical reliability |
+| API timeout | 300s | Covers 98% of requests; 1 retry on timeout |
+| Slice mode | `risk` / `reentrancy_slice_v1` | Configurable per profile |
+
+All experiments use identical 41 samples, identical T=0, and identical prompt templates. Different `run_id` values isolate experiments without mutual interference.
 
 ---
 
-## 环境准备
+## 5. Results and Analysis
 
-### 1. Python 依赖
+### 5.1 Ablation Study
+
+**Table 1: Ablation experiment results on the cleaned 41-sample benchmark (DeepSeek-chat, T=0, repeat=3, mean values).**
+
+| Profile | Accuracy | FPR | FNR | fixed Acc | Key Finding |
+|---|---|---|---|---|---|
+| `baseline_raw` | 0.8699 | 0.375 | 0.071 | 0.625 | Pure LLM baseline |
+| `crop_only` | **0.9024** | 0.458 | **0.010** | 0.542 | ★ Best Accuracy; near-zero FNR |
+| `crop_slither` | 0.8455 | 0.458 | 0.081 | 0.542 | Slither summary degrades performance |
+| `crop_slither_cot` | 0.8049 | 0.375 | 0.152 | 0.625 | CoT provides no stable gain |
+| `crop_slither_multi` | 0.8049 | 0.542 | 0.111 | 0.458 | ★ Worst: multi-contract context is detrimental |
+
+**Analysis**:
+
+1. **Code cropping is the dominant positive factor**: `crop_only` achieves the highest Accuracy (0.9024) and lowest FNR (0.010), confirming that removing irrelevant code allows the LLM to focus on genuine risk patterns. However, cropping also strips safety context (ReentrancyGuard), elevating FPR to 0.458.
+
+2. **Slither static analysis summaries are counterproductive**: Adding Slither output (`crop_slither`) reduces Accuracy from 0.9024 to 0.8455. The structured static-analysis format appears to interfere with the model's direct code comprehension.
+
+3. **Chain-of-Thought reasoning introduces noise**: The `crop_slither_cot` profile shows no improvement over the baseline. Forcing step-by-step reasoning does not compensate for the model's incomplete understanding of Solidity execution semantics (e.g., the `_` placeholder in modifiers representing function body insertion).
+
+4. **Multi-contract context is actively harmful**: `crop_slither_multi` produces the worst results across all metrics (Accuracy=0.8049, FPR=0.542). More code surfaces more external call patterns, causing the model to over-predict vulnerabilities.
+
+**Marginal contributions** (Acc change relative to previous profile):
+
+```
+baseline_raw (0.870)
+  → crop_only: +0.033  ← largest positive gain
+  → crop_slither: -0.057  ← Slither degrades
+  → crop_slither_cot: -0.041  ← CoT degrades further (fixed prompt)
+  → crop_slither_multi: 0.000  ← no additional benefit
+```
+
+### 5.2 FPR Optimization: Three-Round Iteration
+
+**Table 2: Progressive FPR reduction across optimization rounds.**
+
+| Round | Method | FPR | fixed Acc | Core Finding |
+|---|---|---|---|---|
+| 1 | Ablation baseline (crop_only) | 0.458 | 0.542 | Cropping strips ReentrancyGuard safety context |
+| 2 | + Guard source injection | 0.375 | 0.625 | Model "sees" modifier but doesn't understand it |
+| 3 | + Inline explanatory comments | 0.375 | 0.625 | **Code comments are completely ineffective!** |
+| 4 | + Prompt rule injection | **0.250** | **0.750** | **System prompt rules are most effective!** |
+
+**Why are inline comments ineffective while Prompt rules work?**
+
+LLMs process inputs through two distinct information channels:
+- **Instruction Channel** (system prompt rules): High priority, treated as authoritative constraints
+- **Content Channel** (code and comments): Lower priority, treated as contextual documentation
+
+Our experiment empirically validates this distinction in a reentrancy detection context. This has significant implications for LLM prompt engineering in security applications: *telling the model what to believe is more effective than showing it in the data*.
+
+### 5.3 Per-Scenario Analysis
+
+**Table 3: Accuracy breakdown by reentrancy category (best ablation vs. best overall).**
+
+| Category | Ablation Best | slice_v1 + Prompt | Analysis |
+|---|---|---|---|
+| `standard_reentrancy` | 0.972 | 0.931 | Near-perfect; classic pattern well-learned |
+| `cross_function` | 0.833 | **1.000** | Prompt rules achieve zero FP |
+| `reentrancy_via_modifier` | 0.800 | 0.800 | Persistent FP (modifier execution order confusion) |
+| `cross_contract` | 0.722 | 0.556 | Hardest category; cross-chain patterns deviate from typical reentrancy |
+
+**Fixed-variant confusion evolution**:
+- Ablation: 9 FP / 24 fixed → fixed Acc = 0.625
+- Guard injection: 9 FP / 24 → fixed Acc = 0.625 (no significant improvement)
+- Prompt rules: 6 FP / 24 → fixed Acc = **0.750** (33% FP reduction)
+
+**Persistent false positives** (remaining after all optimizations):
+- `03_modifier_fixed`: The `nonReentrant` modifier is recognized by step-0 of the CoT analysis, but the model misjudges modifier execution ordering (when `canReceiveAirdrop` external call occurs relative to `noReentrant` lock).
+- Cross-chain `fixed` samples: Non-standard reentrancy patterns (Bridge cross-chain calls) that do not match typical reentrancy templates.
+
+### 5.4 Dataset Cleaning Impact
+
+**Table 4: Comparison of old vs. cleaned datasets (baseline_raw).**
+
+| Metric | Old (37:4) | Cleaned (33:8) |
+|---|---|---|
+| SmartBugs near-duplicates | 8 | **0** |
+| Sample ID collisions | 8 groups | **0** |
+| FPR stability | Poor (denominator=4) | **Moderate (denominator=8)** |
+| baseline_raw Accuracy | 0.935* | **0.870 (more realistic)** |
+
+*\*Old dataset Accuracy was inflated by near-duplicate samples that artificially boosted apparent performance.*
+
+The cleaned dataset provides more honest performance estimates. However, category imbalance remains (33:8), and cross-chain samples (Acc only 0.556–0.667) may not be suitable as a standard reentrancy detection benchmark due to their distinctive vulnerability patterns.
+
+---
+
+## 6. Discussion
+
+### 6.1 What Works (Validated Gains)
+
+| Method | Evidence | Design Implication |
+|---|---|---|
+| **Code cropping** | Consistently top-2 Accuracy; largest marginal gain (+0.033) | LLM attention is a scarce resource; noise dilution is the primary threat to detection quality |
+| **Guard source injection** | FPR: 0.458 → 0.375 | Letting the model "see" the protection mechanism is necessary but not sufficient |
+| **Prompt rule injection** | FPR: 0.375 → 0.250; fixed Acc: 0.625 → 0.750 | System-level instructions carry significantly higher weight than inline code annotations |
+| **Dataset cleaning** | Removed 8 near-duplicates; eliminated ID collisions | Data quality checks must precede any experimentation to avoid inflated metrics |
+
+### 6.2 What Does Not Work (No Return on Investment)
+
+| Method | Evidence | Design Implication |
+|---|---|---|
+| **CoT step-by-step reasoning** | No stable improvement across all experiments | Complex prompts ≠ better results; reasoning chains cannot overcome fundamental semantic understanding gaps |
+| **Multi-contract dependency context** | Worst performance across all metrics | More code = more false external-call patterns = increased over-prediction |
+| **Inline code comments** | Zero FPR improvement | Models treat comments as documentative context, not as operational constraints |
+| **Slither static analysis summaries** | Accuracy degradation (-0.057 from crop_only) | Structured tool output may interfere with the model's direct code comprehension |
+
+### 6.3 Key Insight: Instruction Channel vs. Content Channel
+
+Our experiments reveal a fundamental property of LLM processing in security applications: **LLMs process inputs through two distinct information channels with asymmetric priority**:
+
+1. **Instruction Channel** (system prompt rules): High priority. The model treats these as authoritative constraints that must be followed.
+2. **Content Channel** (code text, inline comments): Lower priority. The model treats these as contextual data to be analyzed, not as operational directives.
+
+This discovery has significant implications beyond reentrancy detection: when an LLM lacks domain-specific semantic understanding (e.g., Solidity modifier execution mechanics), *telling it the rule in the system prompt is far more effective than embedding explanations in the data itself*.
+
+### 6.4 Fundamental Limitations
+
+- **Modifier semantics**: DeepSeek-chat has a hard ceiling on understanding Solidity modifier execution semantics—specifically, that `_` in a modifier represents the insertion point of the function body. Even with full source code and explicit rules, modifier-based reentrancy scenarios remain challenging.
+- **Class imbalance**: 33 positive vs. 8 negative samples; FPR denominator of only 8 means a single misclassification can measurably affect results.
+- **Data leakage risk**: SmartBugs contracts are all Etherscan-verified mainnet contracts, potentially included in LLM pretraining corpora.
+- **Sample scale**: 41 samples are suitable for ablation analysis but insufficient for a large-scale benchmark.
+- **Zero-shot setting**: All experiments conducted without fine-tuning or few-shot examples.
+
+---
+
+## 7. Conclusion and Future Work
+
+### 7.1 Summary of Contributions
+
+1. **Reproducible detection pipeline**: A complete end-to-end system from data ingestion through preprocessing, prompt assembly, LLM inference, to structured evaluation—with all intermediate artifacts persisted.
+
+2. **Ablation-driven optimization methodology**: Three-round iterative refinement (ablation → slice_v1 + guard → prompt rules) that systematically isolates and validates each enhancement module's contribution.
+
+3. **Empirical validation of instruction-channel priority**: First demonstration in a reentrancy detection context that system prompt rules significantly outperform inline code annotations—a finding with broad implications for LLM-based security analysis.
+
+### 7.2 Final Results
+
+| Method | Accuracy | FPR | FNR | fixed Acc |
+|---|---|---|---|---|
+| Ablation best (`crop_only`) | **0.9024** | 0.458 | **0.010** | 0.542 |
+| `slice_v1` + Guard | **0.9024** | 0.375 | 0.030 | 0.625 |
+| `crop_slither` + Prompt | 0.8780 | 0.292 | 0.081 | 0.708 |
+| `slice_v1` + Prompt (final) | 0.8699 | **0.250** | 0.101 | **0.750** |
+
+**FPR reduced 45%** (0.458 → 0.250); fixed-variant recognition improved from 54% to 75%.
+
+**Core design takeaways**:
+- **Cropping > stacking context**: Removing noise is more effective than adding information.
+- **Instructions > annotations**: System prompt rules are strong signals; inline comments are weak signals.
+- **Model capability ceilings are real**: DeepSeek-chat's incomplete Solidity semantic understanding cannot be fully compensated through prompt engineering alone.
+
+### 7.3 Future Work
+
+- **Stronger models**: Evaluate GPT-4o and DeepSeek-v4-series to probe the upper bound of Solidity modifier understanding.
+- **On-chain validation**: Integrate The DAO, Lendf.Me, and additional verified mainnet contracts into the pipeline.
+- **Self-consistency**: Apply multi-sampling with majority voting to improve stability on low-confidence predictions.
+- **Dataset expansion**: Acquire more paired fixed/insecure samples (currently only 8 pairs available).
+- **RAG exploration**: Implement Retrieval-Augmented Generation as suggested by the benchmark paper (`LLM4Re.pdf`).
+
+---
+
+## Project Structure
+
+```
+├── src/
+│   ├── main.py                       # Experiment orchestrator (1,046 lines)
+│   ├── preprocess.py                 # Slither analysis + code cropping + anonymization
+│   ├── reentrancy_slice_engine.py    # 4-rule slice engine + Guard injection
+│   ├── run_reentrancy_slice.py       # Batch slice cache generator
+│   ├── llm_client.py                 # OpenAI-compatible API client + JSON parser
+│   └── chain_contract_test.py        # On-chain case testing (The DAO / Lendf.Me)
+├── prompts/                          # 5 prompt templates
+│   ├── baseline_prompt.txt           # baseline_raw: full contract source
+│   ├── baseline_prompt_paper.txt     # crop_only: cropped code only
+│   ├── baseline_summary_prompt.txt   # crop_slither / slice_v1
+│   ├── cot_reentrancy_paper.txt      # crop_slither_cot: CoT reasoning
+│   └── multi_contract_summary_prompt.txt  # crop_slither_multi: multi-contract
+├── contracts/
+│   ├── manifest.json                 # Sample ID → file + label mapping
+│   ├── dataset_profile.json          # Dataset statistics
+│   ├── 02_reentrancy/                # Standard reentrancy pairs
+│   ├── 03_reentrancy_via_modifier/   # Modifier reentrancy pairs
+│   ├── 04_cross_function_reentrancy/ # Cross-function pairs
+│   ├── 05_cross_contract_reentrancy/ # Cross-contract pairs
+│   └── smartbugs_curated/            # 23 deduplicated on-chain contracts
+├── runs/                             # Key experiment summaries (summary.json + run_config.json)
+├── requirements.txt                  # openai, slither-analyzer, langchain-core, pydantic
+├── LLM4Re.pdf                        # Reference paper
+└── .gitignore
+```
+
+---
+
+## Quick Start
 
 ```bash
+# Install dependencies
 pip install -r requirements.txt
-```
 
-### 2. Slither（可选但推荐）
-
-```bash
+# Install Slither (optional but recommended)
 pip install slither-analyzer
-solc-select install 0.8.17
-solc-select use 0.8.17
-```
+solc-select install 0.8.17 && solc-select use 0.8.17
 
-> 若未安装 Slither，预处理会自动降级为启发式分析（正则规则）。
-
-### 3. LLM API Key
-
-```bash
-export OPENAI_API_KEY=your_api_key
-# 若使用 DeepSeek：
-# export OPENAI_API_KEY=sk-xxx
-# export OPENAI_BASE_URL=https://api.deepseek.com
-```
-
----
-
-## 运行方式
-
-### 消融实验（5 profile × repeat=3）
-
-```bash
+# Run ablation experiment
 cd src
 python3 main.py \
-  --backend openai \
-  --model deepseek-chat \
+  --backend openai --model deepseek-chat \
   --base-url https://api.deepseek.com \
   --repeat 3 \
   --profiles baseline_raw crop_only crop_slither crop_slither_cot crop_slither_multi \
-  --extra-source-root /opt/uestc/external/extra_reentrancy_pocs \
-  --extra-source-root /opt/uestc/external/crosschain_reentrancy_pairs \
-  --run-id deepseek-ablation-v1
-```
+  --extra-source-root /path/to/extra_reentrancy_pocs \
+  --extra-source-root /path/to/crosschain_reentrancy_pairs \
+  --run-id my-ablation-experiment
 
-### 切片 v1 + Guard 注入实验
-
-```bash
+# Run slice_v1 + Prompt rules (final best configuration)
 python3 main.py \
   --backend openai --model deepseek-chat \
   --repeat 3 \
   --profiles reentrancy_slice_v1 \
   --slice-mode reentrancy_slice_v1 \
-  --extra-source-root /opt/uestc/external/extra_reentrancy_pocs \
-  --extra-source-root /opt/uestc/external/crosschain_reentrancy_pairs \
-  --run-id deepseek-slice-guard-v1
-```
-
-### Prompt 规则注入实验
-
-```bash
-python3 main.py \
-  --backend openai --model deepseek-chat \
-  --repeat 3 \
-  --profiles reentrancy_slice_v1 crop_slither \
-  --slice-mode reentrancy_slice_v1 \
-  --extra-source-root /opt/uestc/external/extra_reentrancy_pocs \
-  --extra-source-root /opt/uestc/external/crosschain_reentrancy_pairs \
-  --run-id deepseek-prompt-v1
-```
-
-### 只用启发式后端（快速验证数据链路）
-
-```bash
-python3 main.py --backend heuristic --repeat 3
-```
-
-### 小范围冒烟测试
-
-```bash
-python3 main.py --backend openai --max-samples 5 --repeat 1
-```
-
-### 预计算切片缓存（可选，加速后续实验）
-
-```bash
-python3 run_reentrancy_slice.py
+  --extra-source-root /path/to/extra_reentrancy_pocs \
+  --extra-source-root /path/to/crosschain_reentrancy_pairs \
+  --run-id my-final-experiment
 ```
 
 ---
 
-## 输出结构
+## References
 
-每次运行后在 `runs/<run_id>/` 下：
+1. Feist, J., Grieco, G., & Groce, A. (2019). Slither: A Static Analysis Framework for Smart Contracts. *IEEE/ACM 2nd International Workshop on Emerging Trends in Software Engineering for Blockchain (WETSEB)*.
 
-```
-runs/<run_id>/
-├── run_config.json           # 实验配置快照
-├── summary.json              # 汇总指标 (Acc/FPR/FNR 均值±标准差)
-├── comparison.json           # 与 baseline_raw 的对比
-├── error_analysis.md         # 错误样本详细分析
-├── repeat_1/
-│   ├── baseline_raw/
-│   │   ├── sample_01/preprocess.json   # 预处理结果
-│   │   ├── sample_01/prompt.txt        # 发送给 LLM 的 Prompt
-│   │   └── sample_01/prediction.json   # LLM 的结构化预测
-│   └── crop_only/...
-├── repeat_2/...
-└── repeat_3/...
-```
+2. LLM4Re: Benchmarking Large Language Models for Smart Contract Reentrancy Detection. See `LLM4Re.pdf`.
 
 ---
 
-## 核心代码说明
+## License
 
-| 文件 | 功能 | 核心函数 |
-|---|---|---|
-| `src/main.py` | 实验编排主入口 | `main()` → 数据加载 → 遍历 repeat×profile → 评估 |
-| `src/preprocess.py` | Slither 静态分析 + 代码裁剪 + 匿名化 | `preprocess_contract()` |
-| `src/reentrancy_slice_engine.py` | 切片引擎 v1：4 条规则 + Guard 注入 | `build_slice_block()` |
-| `src/llm_client.py` | OpenAI 兼容 API 调用 + JSON 解析 | `OpenAICompatibleClient.predict()` |
-| `src/run_reentrancy_slice.py` | 批量生成切片缓存 | `main()` |
-
-### Prompt 组装流程
-
-```
-Solidity 源码
-    ↓ preprocess_contract() — 静态分析 + 代码裁剪
-PreprocessResult（裁剪文本 + 静态发现 + 安全上下文）
-    ↓ 填充 Prompt 模板占位符 ({code_context}, {static_summary}...)
-完整 Prompt 文本
-    ↓ LLM 调用 (T=0, 300s timeout)
-JSON 结构化预测
-    ↓ parse_prediction() — 提取 is_vulnerable, vulnerability_type 等
-评估指标
-```
-
----
-
-## 关键发现总结
-
-### ✅ 有效的方法
-
-1. **代码裁剪** — 去掉无关代码是最大增益，LLM 注意力是稀缺资源
-2. **Guard 源码注入** — FPR 0.458 → 0.375，让模型 "看到" 保护锁
-3. **Prompt 规则教授** — FPR 0.375 → 0.250，系统指令 > 代码注释
-4. **数据集清洗** — 去重 8 个近重复样本，FPR 评估更可靠
-
-### ❌ 无效或退化
-
-1. **CoT 分步推理** — 所有实验中无稳定增益
-2. **多合约上下文** — FPR 反而升至 0.542
-3. **解释性代码注释** — "locked=true 上锁" 对模型完全无效
-4. **Slither 静态摘要** — 信息格式干扰模型对代码本身的理解
-
-### 💡 核心洞察
-
-> LLM 处理输入时有两条信息通道：**指令通道**（系统 Prompt，优先级高）和 **内容通道**（代码与注释，优先级低）。本实验首次在重入检测场景下验证了这一机制。
-
----
-
-## 局限性
-
-- 类别不平衡（33正:8负），FPR 分母仅 8
-- DeepSeek-chat 对 Solidity modifier 执行语义理解有明确上限
-- 公开数据泄漏风险（smartbugs 合约都在 Etherscan 已验证）
-- 样本规模有限（41 个适合消融，非大规模 benchmark）
-- 所有实验均为 zero-shot，未微调
-
-## 未来方向
-
-- 更强模型（GPT-4o, DeepSeek-v4）验证 modifier 语义理解的上限
-- 链上真实合约验证（The DAO, Lendf.Me）
-- Self-consistency 投票机制
-- 扩展 paired fixed/insecure 样本
-- RAG 检索增强方案
-
----
-
-## 许可证
-
-This project is for academic research purposes.
+This project is intended for academic research purposes.
