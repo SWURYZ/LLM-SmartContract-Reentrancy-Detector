@@ -1,0 +1,248 @@
+[
+  {
+    "sample_id": "serial_coder__serial_coder__02_reentrancy__insecure",
+    "original_len": 713,
+    "slice_len": 444,
+    "compression_ratio": 0.6227
+  },
+  {
+    "sample_id": "serial_coder__serial_coder__02_reentrancy__fixed",
+    "original_len": 1064,
+    "slice_len": 672,
+    "compression_ratio": 0.6316
+  },
+  {
+    "sample_id": "serial_coder__serial_coder__03_reentrancy_via_modifier__insecure",
+    "original_len": 1991,
+    "slice_len": 427,
+    "compression_ratio": 0.2145
+  },
+  {
+    "sample_id": "serial_coder__serial_coder__03_reentrancy_via_modifier__fixed",
+    "original_len": 2354,
+    "slice_len": 725,
+    "compression_ratio": 0.308
+  },
+  {
+    "sample_id": "serial_coder__serial_coder__04_cross_function_reentrancy__insecure",
+    "original_len": 999,
+    "slice_len": 918,
+    "compression_ratio": 0.9189
+  },
+  {
+    "sample_id": "serial_coder__serial_coder__04_cross_function_reentrancy__fixed",
+    "original_len": 1091,
+    "slice_len": 915,
+    "compression_ratio": 0.8387
+  },
+  {
+    "sample_id": "serial_coder__serial_coder__05_cross_contract_reentrancy__insecure",
+    "original_len": 1029,
+    "slice_len": 727,
+    "compression_ratio": 0.7065
+  },
+  {
+    "sample_id": "serial_coder__serial_coder__05_cross_contract_reentrancy__fixed",
+    "original_len": 1157,
+    "slice_len": 724,
+    "compression_ratio": 0.6258
+  },
+  {
+    "sample_id": "extra_reentrancy_pocs__extra_reentrancy_pocs__cross_contract_reentrancy",
+    "original_len": 3229,
+    "slice_len": 2114,
+    "compression_ratio": 0.6547
+  },
+  {
+    "sample_id": "extra_reentrancy_pocs__extra_reentrancy_pocs__cross_function_reentrancy",
+    "original_len": 598,
+    "slice_len": 596,
+    "compression_ratio": 0.9967
+  },
+  {
+    "sample_id": "crosschain_reentrancy_pairs__crosschain_reentrancy_pairs__02_reentrancy__insecure",
+    "original_len": 431,
+    "slice_len": 390,
+    "compression_ratio": 0.9049
+  },
+  {
+    "sample_id": "crosschain_reentrancy_pairs__crosschain_reentrancy_pairs__02_reentrancy__fixed",
+    "original_len": 884,
+    "slice_len": 607,
+    "compression_ratio": 0.6867
+  },
+  {
+    "sample_id": "crosschain_reentrancy_pairs__crosschain_reentrancy_pairs__03_reentrancy_via_modifier__insecure",
+    "original_len": 568,
+    "slice_len": 169,
+    "compression_ratio": 0.2975
+  },
+  {
+    "sample_id": "crosschain_reentrancy_pairs__crosschain_reentrancy_pairs__03_reentrancy_via_modifier__fixed",
+    "original_len": 750,
+    "slice_len": 638,
+    "compression_ratio": 0.8507
+  },
+  {
+    "sample_id": "crosschain_reentrancy_pairs__crosschain_reentrancy_pairs__04_cross_function_reentrancy__insecure",
+    "original_len": 535,
+    "slice_len": 614,
+    "compression_ratio": 1.1477
+  },
+  {
+    "sample_id": "crosschain_reentrancy_pairs__crosschain_reentrancy_pairs__04_cross_function_reentrancy__fixed",
+    "original_len": 716,
+    "slice_len": 587,
+    "compression_ratio": 0.8198
+  },
+  {
+    "sample_id": "crosschain_reentrancy_pairs__crosschain_reentrancy_pairs__05_cross_contract_reentrancy__insecure",
+    "original_len": 668,
+    "slice_len": 622,
+    "compression_ratio": 0.9311
+  },
+  {
+    "sample_id": "crosschain_reentrancy_pairs__crosschain_reentrancy_pairs__05_cross_contract_reentrancy__fixed",
+    "original_len": 710,
+    "slice_len": 589,
+    "compression_ratio": 0.8296
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__0x01f8c4e3fa3edeb29e514cba738d87ce8c091d3f",
+    "original_len": 1598,
+    "slice_len": 1241,
+    "compression_ratio": 0.7766
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__0x23a91059fdc9579a9fbd0edc5f2ea0bfdb70deb4",
+    "original_len": 1284,
+    "slice_len": 713,
+    "compression_ratio": 0.5553
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__0x4e73b32ed6c35f570686b89848e5f39f20ecc106",
+    "original_len": 1533,
+    "slice_len": 1176,
+    "compression_ratio": 0.7671
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__0x627fa62ccbb1c1b04ffaecd72a53e37fc0e17839",
+    "original_len": 1640,
+    "slice_len": 1379,
+    "compression_ratio": 0.8409
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__0x7541b76cb60f4c60af330c208b0623b7f54bf615",
+    "original_len": 1428,
+    "slice_len": 796,
+    "compression_ratio": 0.5574
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__0x7a8721a9d64c74da899424c1b52acbf58ddc9782",
+    "original_len": 1534,
+    "slice_len": 875,
+    "compression_ratio": 0.5704
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__0x7b368c4e805c3870b6c49a3f1f49f69af8662cf3",
+    "original_len": 1432,
+    "slice_len": 798,
+    "compression_ratio": 0.5573
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__0x8c7777c45481dba411450c228cb692ac3d550344",
+    "original_len": 1302,
+    "slice_len": 851,
+    "compression_ratio": 0.6536
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__0x941d225236464a25eb18076df7da6a91d0f95e9e",
+    "original_len": 1387,
+    "slice_len": 930,
+    "compression_ratio": 0.6705
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__0x96edbe868531bd23a6c05e9d0c424ea64fb1b78b",
+    "original_len": 1744,
+    "slice_len": 1376,
+    "compression_ratio": 0.789
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__0xb5e1b1ee15c6fa0e48fce100125569d430f1bd12",
+    "original_len": 1296,
+    "slice_len": 736,
+    "compression_ratio": 0.5679
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__0xbe4041d55db380c5ae9d4a9b9703f1ed4e7e3888",
+    "original_len": 1745,
+    "slice_len": 1379,
+    "compression_ratio": 0.7903
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__etherbank",
+    "original_len": 460,
+    "slice_len": 303,
+    "compression_ratio": 0.6587
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__etherstore",
+    "original_len": 779,
+    "slice_len": 621,
+    "compression_ratio": 0.7972
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__modifier_reentrancy",
+    "original_len": 1218,
+    "slice_len": 502,
+    "compression_ratio": 0.4122
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__reentrance",
+    "original_len": 530,
+    "slice_len": 322,
+    "compression_ratio": 0.6075
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__reentrancy_bonus",
+    "original_len": 866,
+    "slice_len": 758,
+    "compression_ratio": 0.8753
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__reentrancy_cross_function",
+    "original_len": 663,
+    "slice_len": 615,
+    "compression_ratio": 0.9276
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__reentrancy_dao",
+    "original_len": 531,
+    "slice_len": 424,
+    "compression_ratio": 0.7985
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__reentrancy_insecure",
+    "original_len": 464,
+    "slice_len": 382,
+    "compression_ratio": 0.8233
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__reentrancy_simple",
+    "original_len": 619,
+    "slice_len": 305,
+    "compression_ratio": 0.4927
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__simple_dao",
+    "original_len": 423,
+    "slice_len": 284,
+    "compression_ratio": 0.6714
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__spank_chain_payment",
+    "original_len": 35948,
+    "slice_len": 8255,
+    "compression_ratio": 0.2296
+  }
+]

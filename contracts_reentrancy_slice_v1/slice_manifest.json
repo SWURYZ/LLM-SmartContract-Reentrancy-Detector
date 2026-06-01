@@ -1,0 +1,289 @@
+[
+  {
+    "sample_id": "serial_coder__serial_coder__02_reentrancy__insecure",
+    "contract_name": "InsecureEtherVault",
+    "has_slice": true,
+    "original_char_len": 713,
+    "slice_char_len": 444
+  },
+  {
+    "sample_id": "serial_coder__serial_coder__02_reentrancy__fixed",
+    "contract_name": "ReentrancyGuard, FixedEtherVault",
+    "has_slice": true,
+    "original_char_len": 1064,
+    "slice_char_len": 672
+  },
+  {
+    "sample_id": "serial_coder__serial_coder__03_reentrancy_via_modifier__insecure",
+    "contract_name": "InsecureAirdrop",
+    "has_slice": true,
+    "original_char_len": 1991,
+    "slice_char_len": 427
+  },
+  {
+    "sample_id": "serial_coder__serial_coder__03_reentrancy_via_modifier__fixed",
+    "contract_name": "ReentrancyGuard, FixedAirdrop",
+    "has_slice": true,
+    "original_char_len": 2354,
+    "slice_char_len": 725
+  },
+  {
+    "sample_id": "serial_coder__serial_coder__04_cross_function_reentrancy__insecure",
+    "contract_name": "InsecureEtherVault",
+    "has_slice": true,
+    "original_char_len": 999,
+    "slice_char_len": 918
+  },
+  {
+    "sample_id": "serial_coder__serial_coder__04_cross_function_reentrancy__fixed",
+    "contract_name": "FixedEtherVault",
+    "has_slice": true,
+    "original_char_len": 1091,
+    "slice_char_len": 915
+  },
+  {
+    "sample_id": "serial_coder__serial_coder__05_cross_contract_reentrancy__insecure",
+    "contract_name": "InsecureMoonVault",
+    "has_slice": true,
+    "original_char_len": 1029,
+    "slice_char_len": 727
+  },
+  {
+    "sample_id": "serial_coder__serial_coder__05_cross_contract_reentrancy__fixed",
+    "contract_name": "FixedMoonVault",
+    "has_slice": true,
+    "original_char_len": 1157,
+    "slice_char_len": 724
+  },
+  {
+    "sample_id": "extra_reentrancy_pocs__extra_reentrancy_pocs__cross_contract_reentrancy",
+    "contract_name": "IRouter, Vault",
+    "has_slice": true,
+    "original_char_len": 3229,
+    "slice_char_len": 2114
+  },
+  {
+    "sample_id": "extra_reentrancy_pocs__extra_reentrancy_pocs__cross_function_reentrancy",
+    "contract_name": "Attack",
+    "has_slice": true,
+    "original_char_len": 598,
+    "slice_char_len": 596
+  },
+  {
+    "sample_id": "crosschain_reentrancy_pairs__crosschain_reentrancy_pairs__02_reentrancy__insecure",
+    "contract_name": "VulnerableExternalContract10",
+    "has_slice": true,
+    "original_char_len": 431,
+    "slice_char_len": 390
+  },
+  {
+    "sample_id": "crosschain_reentrancy_pairs__crosschain_reentrancy_pairs__02_reentrancy__fixed",
+    "contract_name": "CrossChainDataTransfer",
+    "has_slice": true,
+    "original_char_len": 884,
+    "slice_char_len": 607
+  },
+  {
+    "sample_id": "crosschain_reentrancy_pairs__crosschain_reentrancy_pairs__03_reentrancy_via_modifier__insecure",
+    "contract_name": "ModifierEntrancy, Bank",
+    "has_slice": true,
+    "original_char_len": 568,
+    "slice_char_len": 169
+  },
+  {
+    "sample_id": "crosschain_reentrancy_pairs__crosschain_reentrancy_pairs__03_reentrancy_via_modifier__fixed",
+    "contract_name": "CrossChainDataTransfer1",
+    "has_slice": true,
+    "original_char_len": 750,
+    "slice_char_len": 638
+  },
+  {
+    "sample_id": "crosschain_reentrancy_pairs__crosschain_reentrancy_pairs__04_cross_function_reentrancy__insecure",
+    "contract_name": "Reentrancy_cross_function",
+    "has_slice": true,
+    "original_char_len": 535,
+    "slice_char_len": 614
+  },
+  {
+    "sample_id": "crosschain_reentrancy_pairs__crosschain_reentrancy_pairs__04_cross_function_reentrancy__fixed",
+    "contract_name": "CrossChainDataTransferPolkadot, Bridge",
+    "has_slice": true,
+    "original_char_len": 716,
+    "slice_char_len": 587
+  },
+  {
+    "sample_id": "crosschain_reentrancy_pairs__crosschain_reentrancy_pairs__05_cross_contract_reentrancy__insecure",
+    "contract_name": "CrossChainInteraction",
+    "has_slice": true,
+    "original_char_len": 668,
+    "slice_char_len": 622
+  },
+  {
+    "sample_id": "crosschain_reentrancy_pairs__crosschain_reentrancy_pairs__05_cross_contract_reentrancy__fixed",
+    "contract_name": "CrossChainDataTransferCosmos, CosmosBridge",
+    "has_slice": true,
+    "original_char_len": 710,
+    "slice_char_len": 589
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__0x01f8c4e3fa3edeb29e514cba738d87ce8c091d3f",
+    "contract_name": "PERSONAL_BANK, LogFile",
+    "has_slice": true,
+    "original_char_len": 1598,
+    "slice_char_len": 1241
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__0x23a91059fdc9579a9fbd0edc5f2ea0bfdb70deb4",
+    "contract_name": "PrivateBank, Log",
+    "has_slice": true,
+    "original_char_len": 1284,
+    "slice_char_len": 713
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__0x4e73b32ed6c35f570686b89848e5f39f20ecc106",
+    "contract_name": "PRIVATE_ETH_CELL, LogFile",
+    "has_slice": true,
+    "original_char_len": 1533,
+    "slice_char_len": 1176
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__0x627fa62ccbb1c1b04ffaecd72a53e37fc0e17839",
+    "contract_name": "Ownable, Token, TokenBank",
+    "has_slice": true,
+    "original_char_len": 1640,
+    "slice_char_len": 1379
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__0x7541b76cb60f4c60af330c208b0623b7f54bf615",
+    "contract_name": "U_BANK, Log",
+    "has_slice": true,
+    "original_char_len": 1428,
+    "slice_char_len": 796
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__0x7a8721a9d64c74da899424c1b52acbf58ddc9782",
+    "contract_name": "PrivateDeposit, Log",
+    "has_slice": true,
+    "original_char_len": 1534,
+    "slice_char_len": 875
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__0x7b368c4e805c3870b6c49a3f1f49f69af8662cf3",
+    "contract_name": "W_WALLET, Log",
+    "has_slice": true,
+    "original_char_len": 1432,
+    "slice_char_len": 798
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__0x8c7777c45481dba411450c228cb692ac3d550344",
+    "contract_name": "ETH_VAULT, Log",
+    "has_slice": true,
+    "original_char_len": 1302,
+    "slice_char_len": 851
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__0x941d225236464a25eb18076df7da6a91d0f95e9e",
+    "contract_name": "ETH_FUND, Log",
+    "has_slice": true,
+    "original_char_len": 1387,
+    "slice_char_len": 930
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__0x96edbe868531bd23a6c05e9d0c424ea64fb1b78b",
+    "contract_name": "PENNY_BY_PENNY, LogFile",
+    "has_slice": true,
+    "original_char_len": 1744,
+    "slice_char_len": 1376
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__0xb5e1b1ee15c6fa0e48fce100125569d430f1bd12",
+    "contract_name": "Private_Bank, Log",
+    "has_slice": true,
+    "original_char_len": 1296,
+    "slice_char_len": 736
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__0xbe4041d55db380c5ae9d4a9b9703f1ed4e7e3888",
+    "contract_name": "MONEY_BOX, Log",
+    "has_slice": true,
+    "original_char_len": 1745,
+    "slice_char_len": 1379
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__etherbank",
+    "contract_name": "EtherBank",
+    "has_slice": true,
+    "original_char_len": 460,
+    "slice_char_len": 303
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__etherstore",
+    "contract_name": "EtherStore",
+    "has_slice": true,
+    "original_char_len": 779,
+    "slice_char_len": 621
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__modifier_reentrancy",
+    "contract_name": "ModifierEntrancy, Bank, attack",
+    "has_slice": true,
+    "original_char_len": 1218,
+    "slice_char_len": 502
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__reentrance",
+    "contract_name": "Reentrance",
+    "has_slice": true,
+    "original_char_len": 530,
+    "slice_char_len": 322
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__reentrancy_bonus",
+    "contract_name": "Reentrancy_bonus",
+    "has_slice": true,
+    "original_char_len": 866,
+    "slice_char_len": 758
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__reentrancy_cross_function",
+    "contract_name": "Reentrancy_cross_function",
+    "has_slice": true,
+    "original_char_len": 663,
+    "slice_char_len": 615
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__reentrancy_dao",
+    "contract_name": "ReentrancyDAO",
+    "has_slice": true,
+    "original_char_len": 531,
+    "slice_char_len": 424
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__reentrancy_insecure",
+    "contract_name": "Reentrancy_insecure",
+    "has_slice": true,
+    "original_char_len": 464,
+    "slice_char_len": 382
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__reentrancy_simple",
+    "contract_name": "Reentrance",
+    "has_slice": true,
+    "original_char_len": 619,
+    "slice_char_len": 305
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__simple_dao",
+    "contract_name": "SimpleDAO",
+    "has_slice": true,
+    "original_char_len": 423,
+    "slice_char_len": 284
+  },
+  {
+    "sample_id": "smartbugs_curated__smartbugs_curated__spank_chain_payment",
+    "contract_name": "Token, ECTools, StandardToken, HumanStandardToken, LedgerChannel",
+    "has_slice": true,
+    "original_char_len": 35948,
+    "slice_char_len": 8255
+  }
+]

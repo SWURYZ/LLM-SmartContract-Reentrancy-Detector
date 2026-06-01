@@ -23,5 +23,4 @@ runs/
 !runs/*/summary.json
 !runs/*/run_config.json
 
-# Cache
-contracts_reentrancy_slice_v1/
+# Precomputed slice cache (uploaded for reproducibility)

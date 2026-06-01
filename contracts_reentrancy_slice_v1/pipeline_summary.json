@@ -1,0 +1,12 @@
+{
+  "total_samples": 41,
+  "kept_samples": 41,
+  "filtered_samples": 0,
+  "total_original_chars": 79911,
+  "total_slice_chars": 37499,
+  "overall_compression_ratio": 0.4693,
+  "significant_function_count": 5,
+  "total_unique_function_count": 53,
+  "max_chars": 3800,
+  "min_lines": 5
+}

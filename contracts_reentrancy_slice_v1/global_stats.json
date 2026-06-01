@@ -1,0 +1,307 @@
+{
+  "significant_names": [
+    "byzantineCloseChannel",
+    "consensusCloseChannel",
+    "initVCstate",
+    "settleVC",
+    "updateLCstate"
+  ],
+  "func_name_counter": {
+    "deposit": 10,
+    "withdrawAll": 7,
+    "getBalance": 8,
+    "getUserBalance": 8,
+    "constructor": 9,
+    "receiveAirdrop": 2,
+    "_isContract": 2,
+    "hasReceivedAirdrop": 2,
+    "transfer": 6,
+    "shareToAmount": 1,
+    "amountToShare": 1,
+    "swapAndDeposit": 1,
+    "withdraw": 4,
+    "withdrawAndSwap": 1,
+    "work": 1,
+    "harvest": 1,
+    "withdrawBalance": 6,
+    "transferData": 4,
+    "setSourceChain": 1,
+    "getSourceChain": 1,
+    "getTransferredData": 2,
+    "airDrop": 2,
+    "supportsToken": 3,
+    "initiateCrossChainInteraction": 1,
+    "SetMinSum": 4,
+    "SetLogFile": 4,
+    "Initialized": 4,
+    "Deposit": 8,
+    "Collect": 6,
+    "function": 13,
+    "AddMessage": 11,
+    "PrivateBank": 1,
+    "CashOut": 5,
+    "changeOwner": 1,
+    "confirmOwner": 1,
+    "WithdrawToken": 1,
+    "initTokenBank": 1,
+    "WitdrawTokenToHolder": 1,
+    "WithdrawToHolder": 1,
+    "Put": 4,
+    "U_BANK": 1,
+    "PrivateDeposit": 1,
+    "setLog": 1,
+    "W_WALLET": 1,
+    "ETH_VAULT": 1,
+    "ETH_FUND": 1,
+    "Private_Bank": 1,
+    "addToBalance": 2,
+    "depositFunds": 1,
+    "withdrawFunds": 1,
+    "call": 1,
+    "donate": 2,
+    "balanceOf": 2,
+    "withdrawReward": 1,
+    "getFirstWithdrawalBonus": 1,
+    "queryCredit": 1,
+    "recoverSigner": 1,
+    "isSignedBy": 1,
+    "hexstrToBytes": 1,
+    "parseInt16Char": 1,
+    "uintToBytes32": 1,
+    "toEthereumSignedMessage": 1,
+    "uintToString": 1,
+    "substring": 1,
+    "transferFrom": 1,
+    "approve": 1,
+    "allowance": 1,
+    "approveAndCall": 1,
+    "createChannel": 1,
+    "LCOpenTimeout": 1,
+    "joinChannel": 1,
+    "consensusCloseChannel": 1,
+    "updateLCstate": 1,
+    "initVCstate": 1,
+    "settleVC": 1,
+    "closeVirtualChannel": 1,
+    "byzantineCloseChannel": 1,
+    "_isContained": 1,
+    "getChannel": 1,
+    "getVirtualChannel": 1
+  },
+  "sorted_unique_lengths": [
+    [
+      "updateLCstate",
+      55
+    ],
+    [
+      "byzantineCloseChannel",
+      48
+    ],
+    [
+      "settleVC",
+      47
+    ],
+    [
+      "consensusCloseChannel",
+      43
+    ],
+    [
+      "initVCstate",
+      33
+    ],
+    [
+      "createChannel",
+      30
+    ],
+    [
+      "getChannel",
+      30
+    ],
+    [
+      "getVirtualChannel",
+      28
+    ],
+    [
+      "recoverSigner",
+      24
+    ],
+    [
+      "closeVirtualChannel",
+      20
+    ],
+    [
+      "joinChannel",
+      17
+    ],
+    [
+      "uintToString",
+      16
+    ],
+    [
+      "hexstrToBytes",
+      15
+    ],
+    [
+      "swapAndDeposit",
+      13
+    ],
+    [
+      "WithdrawToHolder",
+      13
+    ],
+    [
+      "_isContained",
+      13
+    ],
+    [
+      "parseInt16Char",
+      12
+    ],
+    [
+      "LCOpenTimeout",
+      12
+    ],
+    [
+      "substring",
+      11
+    ],
+    [
+      "withdrawAndSwap",
+      10
+    ],
+    [
+      "WitdrawTokenToHolder",
+      10
+    ],
+    [
+      "confirmOwner",
+      8
+    ],
+    [
+      "withdrawFunds",
+      8
+    ],
+    [
+      "transferFrom",
+      8
+    ],
+    [
+      "initiateCrossChainInteraction",
+      7
+    ],
+    [
+      "changeOwner",
+      6
+    ],
+    [
+      "WithdrawToken",
+      6
+    ],
+    [
+      "initTokenBank",
+      6
+    ],
+    [
+      "withdrawReward",
+      6
+    ],
+    [
+      "getFirstWithdrawalBonus",
+      6
+    ],
+    [
+      "toEthereumSignedMessage",
+      6
+    ],
+    [
+      "approveAndCall",
+      6
+    ],
+    [
+      "PrivateDeposit",
+      5
+    ],
+    [
+      "ETH_VAULT",
+      5
+    ],
+    [
+      "ETH_FUND",
+      5
+    ],
+    [
+      "approve",
+      5
+    ],
+    [
+      "PrivateBank",
+      4
+    ],
+    [
+      "setLog",
+      4
+    ],
+    [
+      "Private_Bank",
+      4
+    ],
+    [
+      "isSignedBy",
+      4
+    ],
+    [
+      "uintToBytes32",
+      4
+    ],
+    [
+      "shareToAmount",
+      3
+    ],
+    [
+      "amountToShare",
+      3
+    ],
+    [
+      "setSourceChain",
+      3
+    ],
+    [
+      "getSourceChain",
+      3
+    ],
+    [
+      "U_BANK",
+      3
+    ],
+    [
+      "W_WALLET",
+      3
+    ],
+    [
+      "depositFunds",
+      3
+    ],
+    [
+      "call",
+      3
+    ],
+    [
+      "queryCredit",
+      3
+    ],
+    [
+      "allowance",
+      3
+    ],
+    [
+      "work",
+      1
+    ],
+    [
+      "harvest",
+      1
+    ]
+  ],
+  "total_unique_functions": 53,
+  "total_functions": 193
+}
