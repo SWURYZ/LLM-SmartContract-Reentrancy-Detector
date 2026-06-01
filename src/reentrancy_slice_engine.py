@@ -428,6 +428,70 @@ def _inject_reentrancy_guard(
 
 
 # ---------------------------------------------------------------------------
+# 安全摘要：nonReentrant 绕过路径检测
+# ---------------------------------------------------------------------------
+
+GUARD_MODIFIER_NAMES: set[str] = {"nonreentrant", "noreentrant"}
+
+
+def _generate_security_summary(
+    contracts: list[ContractMeta],
+    parent_contracts: dict[str, str] | None,
+) -> str:
+    """
+    分析切片中所有合约的安全状态，生成结构化摘要。
+    检测 nonReentrant 是否存在绕过风险。
+    """
+    if not contracts:
+        return ""
+
+    lines: list[str] = []
+    lines.append("// ===== SECURITY SUMMARY =====")
+
+    total_funcs = 0
+    protected_funcs = 0
+    unprotected_reentrancy_funcs: list[str] = []
+    has_cross_contract_call = False
+    has_nonreentrant = False
+
+    for contract in contracts:
+        for func in contract.functions:
+            total_funcs += 1
+            is_protected = any(
+                m.lower() in GUARD_MODIFIER_NAMES
+                for m in func.referenced_modifiers
+            )
+            if is_protected:
+                has_nonreentrant = True
+                protected_funcs += 1
+            elif func.has_reentrancy_call:
+                # 有重入调用但没有 nonReentrant 保护
+                unprotected_reentrancy_funcs.append(f"{contract.name}.{func.name}")
+                has_cross_contract_call = True
+
+    if has_nonreentrant:
+        lines.append(f"// nonReentrant 保护: {protected_funcs}/{total_funcs} 函数已加锁")
+
+    if unprotected_reentrancy_funcs:
+        names = ", ".join(unprotected_reentrancy_funcs[:6])
+        lines.append(f"// [BYPASS-RISK] 无 nonReentrant 保护的调用函数: {names}")
+        lines.append("//   攻击者可回调这些未加锁函数实现跨函数重入")
+
+    if has_cross_contract_call and has_nonreentrant:
+        lines.append("// [BYPASS-RISK] 存在跨合约外部调用 + nonReentrant 锁")
+        lines.append("//   nonReentrant 仅保护单函数不被重入，无法阻止跨合约回调路径")
+
+    if not unprotected_reentrancy_funcs and has_nonreentrant:
+        lines.append("// [SAFE] nonReentrant 覆盖所有风险函数，无绕过路径")
+
+    if total_funcs == 0:
+        lines.append("// 无可分析函数")
+
+    lines.append("// =============================\n")
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
 # 规则 4：输入块构造
 # ---------------------------------------------------------------------------
 
@@ -619,9 +683,15 @@ def run_slice_pipeline(
         all_slices.sort(key=lambda x: x[0], reverse=True)
         final_blocks: list[str] = []
         final_len = 0
+
+        # ---- 安全摘要注入 ----
+        sample_contracts = [all_contracts[idx] for idx in contract_indices]
+        security_summary = _generate_security_summary(sample_contracts, parent_contracts)
+        summary_len = len(security_summary) if security_summary else 0
+
         for _, text in all_slices:
-            if final_len + len(text) > max_chars:
-                # 但如果是第一个合约，强制保留
+            effective_limit = max_chars - summary_len  # 为摘要预留空间
+            if final_len + len(text) > effective_limit:
                 if not final_blocks:
                     final_blocks.append(text)
                     final_len += len(text)
@@ -630,6 +700,10 @@ def run_slice_pipeline(
             else:
                 final_blocks.append(text)
                 final_len += len(text)
+
+        # 安全摘要放在最前面
+        if security_summary:
+            final_blocks.insert(0, security_summary)
 
         slice_text = "\n\n".join(final_blocks) if final_blocks else None
 
