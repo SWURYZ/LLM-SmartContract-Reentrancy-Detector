@@ -113,7 +113,7 @@
 
 ### 整体方法流程
 
-四阶段流水线：Solidity 合约与依赖文件 → 预处理（Slither / 规则回退，裁剪与匿名化）→ Prompt 组装 → DeepSeek-chat 结构化预测 → 评估与落盘（Accuracy / FPR / FNR）。预处理阶段保留风险函数、相关 modifier 和依赖上下文，并对样本名做匿名化减少标签泄漏。模型输出采用固定 JSON 结构，方便批量解析与指标统计。
+四阶段流水线：Solidity 合约与依赖文件 → 预处理（Slither / 规则回退，裁剪与匿名化）→ Prompt 组装 → DeepSeek-chat 结构化预测 → 评估与落盘（Accuracy / FPR / FNR）。预处理阶段保留风险函数、相关 modifier 和依赖上下文，并对样本名做匿名化减少标签泄漏。模型输出采用固定 JSON 结构，方便批量解析与指标统计。使用 `--slice-mode reentrancy_slice_v1` 时，预处理会自动从 `contracts_reentrancy_slice_v1/` 加载预计算切片（缓存命中）或实时调用切片引擎（缓存未命中）。
 
 ### Prompt 设计与消融配置
 
@@ -399,6 +399,13 @@
 │   └── original_*.txt                # 原始备份版（不含 nonReentrant 规则）
 ├── contracts/
 │   └── manifest.json                 # sample_id → Solidity 文件 + label 映射
+├── contracts_reentrancy_slice_v1/    # 预计算切片缓存（41 个 .sol + global_stats + manifest）
+│   ├── serial_coder__.../slice.sol
+│   ├── smartbugs_curated__.../slice.sol
+│   ├── crosschain_reentrancy_pairs__.../slice.sol
+│   ├── extra_reentrancy_pocs__.../slice.sol
+│   ├── global_stats.json             # 全局函数统计（供显著函数筛选）
+│   └── slice_manifest.json           # 切片路径映射
 ├── runs/                             # 核心实验汇总（summary.json + run_config.json）
 ├── requirements.txt
 ├── LLM4Re.pdf
