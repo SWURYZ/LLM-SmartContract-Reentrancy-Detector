@@ -11,9 +11,20 @@
 3. 如果看不到明显漏洞，也请说明当前代码是如何避免重入的。
 4. 只依据给定上下文，不要补充未给出的代码或假设。
 
+【重入保护机制识别规则】
+- 如果函数使用了 nonReentrant / noReentrant 修饰符，说明该函数已受到重入锁保护，不应判定为存在重入漏洞。
+- nonReentrant 修饰符的工作原理：在执行函数体之前设置 locked=true（上锁），函数执行完毕后再设置 locked=false（解锁）；如果被重入，require(!locked) 会直接回滚，阻止攻击。
+- 如果合约继承了 ReentrancyGuard，且函数带有 nonReentrant 修饰符，则该函数是安全的（fixed），即使函数体内存在外部调用。
+- 但是上下文的安全摘要中会明确指出 nonReentrant 保护是否存在绕过风险，请结合摘要综合判断。
+
 代码上下文如下：
 
 {cropped_context}
+
+完成判定后，请进行自我审查：
+1. 如果 confidence 较低（<0.8），指出缺少了哪些信息会导致置信度不足。
+2. 如果换一个角度重新审阅代码，你的判定是否会不同？为什么？
+3. 本次分析任务中，Prompt 是否存在表述不清或信息不足的地方？
 
 请只输出一个 JSON 对象，不要输出额外解释：
 {{
@@ -22,5 +33,6 @@
   "vulnerable_functions": ["functionName"],
   "attack_path": "一句话描述攻击路径",
   "confidence": 0.0,
-  "reasoning": "简要理由"
+  "reasoning": "简要理由",
+  "self_inspection": "简洁回答上述3个审查问题"
 }}

@@ -11,11 +11,22 @@
 多文件上下文：
 {cropped_context}
 
+【重入保护机制识别规则】
+- 如果函数使用了 nonReentrant / noReentrant 修饰符，说明该函数已受到重入锁保护，不应判定为存在重入漏洞。
+- nonReentrant 修饰符的工作原理：在执行函数体之前设置 locked=true（上锁），require(!locked) 阻止回调重入；函数执行完毕后 locked=false（解锁）。
+- 如果合约继承了 ReentrancyGuard，且函数带有 nonReentrant 修饰符，则该函数是安全的（fixed）。
+- 但是上下文的安全摘要中会明确指出 nonReentrant 保护是否存在绕过风险，请结合摘要综合判断。
+
 请重点完成以下检查：
 1. 标出主合约中所有会向外部地址或外部合约发起调用的入口。
 2. 判断这些调用是否依赖另一个合约维护的状态，或者会在调用返回后继续修改本合约状态。
 3. 如果外部合约或回调地址可以重新进入主合约，请说明它可能回踩的是同一函数还是其他函数。
 4. 如果存在 nonReentrant 锁、modifier、或 trusted contract 假设，请判断这些防护是否足以阻断重入。
+
+完成判定后，请进行自我审查：
+1. 如果 confidence 较低（<0.8），指出缺少了哪些信息会导致置信度不足。
+2. 如果换一个角度重新审阅代码，你的判定是否会不同？为什么？
+3. 本次分析任务中，Prompt 是否存在表述不清或信息不足的地方？
 
 请只输出一个 JSON 对象，不要输出额外解释：
 {{
@@ -24,5 +35,6 @@
   "vulnerable_functions": ["functionName"],
   "attack_path": "描述主合约与相关合约之间的调用链",
   "confidence": 0.0,
-  "reasoning": "只保留最终审计结论"
+  "reasoning": "只保留最终审计结论",
+  "self_inspection": "简洁回答上述3个审查问题"
 }}
