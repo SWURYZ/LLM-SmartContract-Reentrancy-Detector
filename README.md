@@ -121,15 +121,30 @@ LLM 能力有限（幻觉、上下文窗口、对 Solidity 语义理解不全）
 
 **实验动机**：核心问题是"什么样的上下文对 LLM 重入检测最有帮助？是越多越好，还是精准裁剪更重要？"
 
-5 个 profile 由简至繁递进：
+5 个 profile 由简至繁递进，每个对应一套 Prompt 模板文件：
 
-| Profile | 输入特征 | 验证假设 |
-|---|---|---|
-| `baseline_raw` | 全量主合约原文 | 纯 LLM 基线——是否需要任何预处理？ |
-| `crop_only` | 裁剪后风险代码 | 仅裁剪——验证"去掉无关代码"是否有帮助 |
-| `crop_slither` | 裁剪 + Slither 摘要 | 裁剪+摘要——验证静态分析信息是否增强判断 |
-| `crop_slither_cot` | + CoT 分步推理 | 加入 CoT——验证复杂 Prompt 工程是否有收益 |
-| `crop_slither_multi` | + 多合约上下文 | 加入多合约——验证依赖文件是否必要 |
+| Profile | Prompt 模板 | 输入特征 | 验证假设 |
+|---|---|---|---|
+| `baseline_raw` | `baseline_prompt.txt` | 全量主合约原文 | 纯 LLM 基线——是否需要任何预处理？ |
+| `crop_only` | `baseline_prompt_paper.txt` | 裁剪后风险代码 | 仅裁剪——验证"去掉无关代码"是否有帮助 |
+| `crop_slither` | `baseline_summary_prompt.txt` | 裁剪 + Slither 摘要 | 裁剪+摘要——验证静态分析信息是否增强判断 |
+| `crop_slither_cot` | `cot_reentrancy_paper.txt` | + CoT 分步推理 | 加入 CoT——验证复杂 Prompt 工程是否有收益 |
+| `crop_slither_multi` | `multi_contract_summary_prompt.txt` | + 多合约上下文 | 加入多合约——验证依赖文件是否必要 |
+| `reentrancy_slice_v1` | `baseline_summary_prompt.txt` | 切片 v1 + Guard 注入 | 裁剪更精准 + 安全上下文完整 |
+
+**各模板使用场景**：
+
+- **`baseline_prompt.txt`**：仅用于 `baseline_raw`。输入为完整合约原文，不含任何预处理。用于验证 LLM 在零预处理条件下的原始能力。
+
+- **`baseline_prompt_paper.txt`**：仅用于 `crop_only`。输入为裁剪后的风险代码片段，不含静态分析摘要。用于验证纯粹代码裁剪的效果。
+
+- **`baseline_summary_prompt.txt`**：用于 `crop_slither` 和 `reentrancy_slice_v1`。输入为裁剪代码 + Slither 静态分析摘要。这是使用最广泛的模板——标准裁剪和切片引擎共用同一套 Prompt，差异完全来自输入的代码上下文不同（规则裁剪 vs 切片引擎 v1）。
+
+- **`cot_reentrancy_paper.txt`**：仅用于 `crop_slither_cot`。在裁剪代码和静态摘要基础上，额外要求模型按 6 个固定步骤（步骤 0 到步骤 6）分步推理，包括 nonReentrant 前置检查、外部调用定位、状态更新检测、modifier 分析、跨函数检查和结论提炼。
+
+- **`multi_contract_summary_prompt.txt`**：仅用于 `crop_slither_multi`。与 baseline_summary 类似，但额外包含依赖合约和接口文件的多文件上下文，要求模型进行系统级跨合约分析。
+
+**模板设计原则**：所有模板共享相同的 JSON 输出格式要求（`is_vulnerable`、`vulnerability_type`、`vulnerable_functions`、`attack_path`、`confidence`、`reasoning`），确保不同 profile 之间的预测结果可直接比较。每个模板独立维护，修改其中一个不影响其他 profile 的历史实验结果。
 
 消融实验逻辑：从简单到复杂逐层叠加，观察每一步的边际收益。若某层退化，说明该增强可能引入噪声。所有 profile 共享同一样本集、T=0、repeat=3。
 
