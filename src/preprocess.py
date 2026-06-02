@@ -14,6 +14,13 @@ except Exception as exc:  # pragma: no cover - optional dependency
     import sys
     print(f"[preprocess] Slither 导入失败（将全程使用启发式分析）: {exc}", file=sys.stderr)
 
+try:
+    from standards_kb import build_standards_summary, detect_contract_standard, ContractStandardInfo
+except ImportError:
+    build_standards_summary = None
+    detect_contract_standard = None
+    ContractStandardInfo = None
+
 # solc-select 二进制路径映射，用于自动匹配合约的 pragma 版本
 _SOLC_BINARIES: dict[str, str] = {}
 _solc_artifacts = Path.home() / ".solc-select" / "artifacts"
@@ -339,6 +346,23 @@ def _build_static_summary(
     for finding in findings:
         call_text = ", ".join(finding.external_calls) if finding.external_calls else "-"
         write_text = ", ".join(finding.state_writes) if finding.state_writes else "-"
+
+        # 增强：判断外部调用是否可劫持
+        hijack_note = ""
+        if finding.external_calls and build_standards_summary is not None:
+            try:
+                source = main_path.read_text(encoding="utf-8", errors="ignore")
+                std_info = detect_contract_standard(source) if detect_contract_standard else None
+                if std_info:
+                    from standards_kb import is_external_call_hijackable
+                    for ec in finding.external_calls:
+                        is_hijack, reason = is_external_call_hijackable(ec, std_info)
+                        if is_hijack:
+                            hijack_note = f" [HIJACKABLE: {reason}]"
+                            break
+            except Exception:
+                pass
+
         lines.append(
             " | ".join(
                 [
@@ -346,7 +370,7 @@ def _build_static_summary(
                     f"类型={finding.symbol_type}",
                     f"原因={','.join(finding.reasons) or '-'}",
                     f"ETH发送={finding.can_send_eth}",
-                    f"外部调用={call_text}",
+                    f"外部调用={call_text}{hijack_note}",
                     f"写状态={write_text}",
                     f"交互后更新状态={finding.post_interaction_state_update}",
                 ]
@@ -354,7 +378,18 @@ def _build_static_summary(
         )
     for warning in warnings:
         lines.append(f"警告: {redact_prompt_text(warning)}")
-    return "\n".join(lines)
+
+    # 注入合约标准增强摘要
+    summary_text = "\n".join(lines)
+    if build_standards_summary is not None:
+        try:
+            source = main_path.read_text(encoding="utf-8", errors="ignore")
+            std_enhanced = build_standards_summary(source, summary_text)
+            return std_enhanced
+        except Exception:
+            pass
+
+    return summary_text
 
 
 def _build_cropped_context(

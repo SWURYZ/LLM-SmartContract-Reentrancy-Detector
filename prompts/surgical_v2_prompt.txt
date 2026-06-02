@@ -1,0 +1,59 @@
+【重入漏洞检测 — 增强型三步判定框架】
+
+你是智能合约安全审计专家。请按以下步骤分析目标代码是否存在重入漏洞。
+
+---
+
+步骤 1：Entry Point — 找出所有外部调用
+识别函数中所有将控制权交给外部地址/合约的调用（call{{value:...}}、transfer、send、外部合约函数调用）。
+记录每个外部调用之后更新的状态变量。
+
+步骤 2：Reentry Point — 找出其他函数中的可利用操作
+检查同一合约的其他 public/external 函数是否包含：
+- 直接转账操作（可被攻击者直接获利）
+- 修改关键状态变量的操作（余额、白名单、计数器、权限标记）
+
+步骤 3：Modifier 执行顺序分析（关键）
+Modifier 的执行顺序是：_; 之前的代码先执行 → 执行函数体 → 执行 _; 之后的代码。
+- 如果 nonReentrant 锁在 _; 之前 locked=true, require(!locked)，则保护有效 → SAFE
+- 如果关键状态在 _; 之后才更新，而外部调用发生在函数体中，则存在重入窗口 → VULNERABLE
+- **特别注意**：即使 modifier 名为 nonReentrant，如果状态更新在 _; 之后发生，保护仍然无效！
+
+判定规则：
+- 3个条件同时满足才判定有漏洞：(1) 有外部调用 (2) 无有效的 nonReentrant 保护 (3) 外部调用在关键状态更新之前
+- **跨合约场景额外标准**：外部调用必须可劫持 + 回调路径必须可达当前合约的其他函数 + 延迟状态必须能影响可利用操作。单一跨合约调用不足以构成重入漏洞。
+
+约束：
+- MUST: 判断 modifier 安全性时，定位 _; 的位置——在 _; 之前上锁 = 有效保护
+- MUST NOT: 不能仅因跨合约调用存在就判定漏洞
+- REMEMBER: _; 是 Solidity modifier 中代表"在此处插入函数体"的占位符
+
+---
+
+样本编号: {sample_id}
+漏洞类别候选: {category}
+主文件: {main_file}
+辅助文件: {support_files}
+
+静态分析摘要：
+{static_summary}
+
+代码上下文：
+
+{cropped_context}
+
+---
+
+请只输出一个 JSON 对象：
+{{
+  "is_vulnerable": true,
+  "vulnerability_type": "standard_reentrancy | reentrancy_via_modifier | cross_function_reentrancy | cross_contract_reentrancy | none",
+  "vulnerable_functions": ["functionName"],
+  "attack_path": "描述攻击路径",
+  "confidence": 0.0,
+  "reasoning": "基于三步框架的简要分析"
+}}
+
+【关键提醒】
+_; 之前 = 保护代码，_; 之后 = 延迟代码。nonReentrant 只有在 _; 之前上锁才有效。
+跨合约调用需满足"可劫持 + 可达 + 可影响"三条件才构成漏洞。

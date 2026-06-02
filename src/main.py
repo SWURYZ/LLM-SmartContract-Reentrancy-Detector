@@ -16,6 +16,13 @@ from preprocess import (
     redact_prompt_text,
     write_preprocess_result,
 )
+from rag_engine import (
+    ReentrancyRAGEngine,
+    RetrievedExample,
+    get_rag_engine,
+    rank_predictions_by_composite,
+)
+from revision_engine import revision_enhanced_complete
 
 
 REENTRANCY_FOLDERS = {
@@ -104,6 +111,74 @@ ABLATION_RUNS: dict[str, ExperimentRunSpec] = {
         include_support_files=False,
         description="Improved reentrancy slice v1: global stats + significance filter + greedy fill 3800.",
     ),
+    # ---- 新增：RAG + 迭代修订 + 多维排序系列 ----
+    "rag_strong": ExperimentRunSpec(
+        name="rag_strong",
+        template_name="rag_reentrancy_prompt.txt",
+        use_raw_context=False,
+        include_static_summary=True,
+        include_support_files=False,
+        description="RAG phase 1: Strong prompt with MUST/MUST NOT constraints (no few-shot yet).",
+    ),
+    "rag_fewshot": ExperimentRunSpec(
+        name="rag_fewshot",
+        template_name="rag_fewshot_prompt.txt",
+        use_raw_context=False,
+        include_static_summary=True,
+        include_support_files=False,
+        description="RAG phase 2: Few-shot examples retrieved from vector DB + strong constraints.",
+    ),
+    "rag_fewshot_revision": ExperimentRunSpec(
+        name="rag_fewshot_revision",
+        template_name="rag_fewshot_prompt.txt",
+        use_raw_context=False,
+        include_static_summary=True,
+        include_support_files=False,
+        description="RAG phase 3: Few-shot + iterative revision (compile-feedback loop).",
+    ),
+    "rag_full": ExperimentRunSpec(
+        name="rag_full",
+        template_name="rag_fewshot_prompt.txt",
+        use_raw_context=False,
+        include_static_summary=True,
+        include_support_files=False,
+        description="RAG phase 4: Full pipeline = Few-shot + Revision + Multi-dimension ranking.",
+    ),
+    # ---- 新增：合约标准增强 + 三步判定框架 ----
+    "standards_entry": ExperimentRunSpec(
+        name="standards_entry",
+        template_name="standards_reentrancy_prompt.txt",
+        use_raw_context=False,
+        include_static_summary=True,
+        include_support_files=False,
+        description="Contract standards: Entry-Reentry-Flow framework + ERC hook knowledge + Verbose Elaboration.",
+    ),
+    # ---- 新增：外科手术式组合 ----
+    "combined_surgical": ExperimentRunSpec(
+        name="combined_surgical",
+        template_name="combined_reentrancy_prompt.txt",
+        use_raw_context=False,
+        include_static_summary=True,
+        include_support_files=False,
+        description="Combined: rag_strong conservative base + modifier execution order analysis + cross-contract moderation.",
+    ),
+    "surgical_v2": ExperimentRunSpec(
+        name="surgical_v2",
+        template_name="surgical_v2_prompt.txt",
+        use_raw_context=False,
+        include_static_summary=True,
+        include_support_files=False,
+        description="Surgical v2: standards_entry framework + cross-contract moderation (removed rag_strong conflicting constraints).",
+    ),
+    # ---- Two-Pass 流水线 ----
+    "two_pass": ExperimentRunSpec(
+        name="two_pass",
+        template_name="rag_reentrancy_prompt.txt",  # 主模板（Pass 1）
+        use_raw_context=False,
+        include_static_summary=True,
+        include_support_files=False,
+        description="Two-Pass: rag_strong first, if confidence<0.5 fallback to standards_entry.",
+    ),
 }
 
 DEFAULT_ABLATION_RUNS = [
@@ -112,6 +187,16 @@ DEFAULT_ABLATION_RUNS = [
     "crop_slither",
     "crop_slither_cot",
     "crop_slither_multi",
+]
+
+# RAG 实验专用 profiles（与消融实验独立）
+RAG_EXPERIMENT_RUNS = [
+    "baseline_raw",        # 基线对照
+    "crop_slither",        # 裁剪+摘要对照（原最优基线之一）
+    "rag_strong",          # RAG phase 1: 强约束 Prompt
+    "rag_fewshot",         # RAG phase 2: + Few-Shot 示例
+    "rag_fewshot_revision",# RAG phase 3: + 迭代修订
+    "rag_full",            # RAG phase 4: + 多维排序（全流水线）
 ]
 
 
@@ -182,8 +267,26 @@ def main() -> None:
         encoding="utf-8",
     )
 
+    # ---- RAG 引擎初始化（仅当有 RAG profile 时） ----
+    rag_engine: ReentrancyRAGEngine | None = None
+    rag_profiles = {"rag_strong", "rag_fewshot", "rag_fewshot_revision", "rag_full"}
+    any_rag = bool(set(run_names) & rag_profiles)
+    if any_rag:
+        rag_engine = get_rag_engine(top_k=args.rag_top_k)
+        print(f"[RAG] Initialized vector index with {len(rag_engine.patterns)} reentrancy patterns.")
+
+    # 判断各 profile 是否需要 RAG / revision / multi-dim
+    def _profile_needs_rag(name: str) -> bool:
+        return name in {"rag_fewshot", "rag_fewshot_revision", "rag_full"}
+
+    def _profile_needs_revision(name: str) -> bool:
+        return name in {"rag_fewshot_revision", "rag_full"} or args.enable_revision
+
+    def _profile_needs_multidim(name: str) -> bool:
+        return name == "rag_full" or args.enable_multi_dim
+
     profile_history: dict[str, dict[str, Any]] = {
-        run_spec.name: {"repeat_metrics": [], "records": []}
+        run_spec.name: {"repeat_metrics": [], "records": [], "revision_stats": []}
         for run_spec in run_specs
     }
     repeat_summaries: list[dict[str, Any]] = []
@@ -202,6 +305,15 @@ def main() -> None:
                 encoding="utf-8",
             )
             records: list[dict[str, Any]] = []
+            revision_stats: dict[str, Any] = {
+                "total_revisions": 0,
+                "converged_count": 0,
+                "samples_with_revision": 0,
+            }
+
+            needs_rag = _profile_needs_rag(run_spec.name)
+            needs_revision = _profile_needs_revision(run_spec.name)
+            needs_multidim = _profile_needs_multidim(run_spec.name)
 
             for sample in selected_samples:
                 support_files = sample.support_files if run_spec.include_support_files else []
@@ -214,14 +326,98 @@ def main() -> None:
                 sample_dir.mkdir(parents=True, exist_ok=True)
                 write_preprocess_result(preprocess_result, sample_dir / "preprocess.json")
 
-                prompt_text = build_prompt(sample, preprocess_result, prompts_root, run_spec)
+                # ---- RAG 检索 ----
+                retrieved_text = ""
+                rag_meta: dict[str, Any] | None = None
+                if needs_rag and rag_engine is not None:
+                    cropped_code = preprocess_result.cropped_context or ""
+                    examples = rag_engine.retrieve(cropped_code, top_k=args.rag_top_k)
+                    retrieved_text = rag_engine.build_few_shot_prompt_block(examples)
+                    rag_meta = {
+                        "num_examples": len(examples),
+                        "examples": [
+                            {
+                                "pattern_id": ex.pattern.pattern_id,
+                                "category": ex.pattern.category,
+                                "label": ex.pattern.label,
+                                "similarity": round(ex.similarity_score, 4),
+                            }
+                            for ex in examples
+                        ],
+                    }
+                    (sample_dir / "rag_retrieval.json").write_text(
+                        json.dumps(rag_meta, ensure_ascii=False, indent=2),
+                        encoding="utf-8",
+                    )
+
+                prompt_text = build_prompt(
+                    sample, preprocess_result, prompts_root, run_spec,
+                    retrieved_examples=retrieved_text,
+                )
                 (sample_dir / "prompt.txt").write_text(prompt_text, encoding="utf-8")
 
+                # ---- 预测（可选迭代修订） ----
+                revision_meta: dict[str, Any] | None = None
                 if args.backend == "heuristic":
                     prediction = heuristic_predict(sample, preprocess_result)
                 else:
                     assert client is not None
-                    prediction = client.complete(prompt_text)
+                    prediction, revision_meta = revision_enhanced_complete(
+                        client,
+                        prompt_text,
+                        enable_revision=needs_revision,
+                        max_revision_rounds=args.max_revision_rounds,
+                    )
+
+                # ---- Two-Pass 流水线：置信度不足时回退到 standards_entry ----
+                two_pass_meta: dict[str, Any] | None = None
+                TWO_PASS_THRESHOLD = 0.5
+                if run_spec.name == "two_pass" and prediction.confidence < TWO_PASS_THRESHOLD:
+                    # Pass 2: 使用 standards_entry 模板重新判断
+                    fallback_spec = ABLATION_RUNS["standards_entry"]
+                    fallback_prompt = build_prompt(
+                        sample, preprocess_result, prompts_root, fallback_spec,
+                        retrieved_examples=retrieved_text,
+                    )
+                    (sample_dir / "prompt_pass2.txt").write_text(fallback_prompt, encoding="utf-8")
+
+                    fallback_pred, _ = revision_enhanced_complete(
+                        client,
+                        fallback_prompt,
+                        enable_revision=False,
+                        max_revision_rounds=1,
+                    )
+
+                    two_pass_meta = {
+                        "pass1_confidence": prediction.confidence,
+                        "pass1_is_vulnerable": prediction.is_vulnerable,
+                        "pass1_reasoning": prediction.reasoning[:200],
+                        "pass2_confidence": fallback_pred.confidence,
+                        "pass2_is_vulnerable": fallback_pred.is_vulnerable,
+                        "pass2_reasoning": fallback_pred.reasoning[:200],
+                        "fallback_triggered": True,
+                        "used_pass": 2,
+                    }
+                    prediction = fallback_pred
+                    (sample_dir / "two_pass_meta.json").write_text(
+                        json.dumps(two_pass_meta, ensure_ascii=False, indent=2),
+                        encoding="utf-8",
+                    )
+                    (sample_dir / "prediction_pass2.json").write_text(
+                        json.dumps(fallback_pred.to_dict(), ensure_ascii=False, indent=2),
+                        encoding="utf-8",
+                    )
+
+                if revision_meta:
+                    revision_stats["total_revisions"] += revision_meta.get("revision_rounds", 1)
+                    if revision_meta.get("converged"):
+                        revision_stats["converged_count"] += 1
+                    if revision_meta.get("revision_rounds", 1) > 1:
+                        revision_stats["samples_with_revision"] += 1
+                    (sample_dir / "revision_meta.json").write_text(
+                        json.dumps(revision_meta, ensure_ascii=False, indent=2),
+                        encoding="utf-8",
+                    )
 
                 record = {
                     "run_id": run_id,
@@ -230,6 +426,9 @@ def main() -> None:
                     "sample": sample.to_dict(),
                     "prediction": prediction.to_dict(),
                     "correct": prediction.is_vulnerable == sample.label,
+                    "rag_meta": rag_meta,
+                    "revision_meta": revision_meta,
+                    "two_pass_meta": two_pass_meta,
                 }
                 records.append(record)
                 (sample_dir / "prediction.json").write_text(
@@ -237,9 +436,28 @@ def main() -> None:
                     encoding="utf-8",
                 )
 
+            # ---- 多维排序（如果启用） ----
+            if needs_multidim and rag_engine is not None:
+                sample_ids = set(r["sample"]["sample_id"] for r in records)
+                for sid in sample_ids:
+                    sample_records = [r for r in records if r["sample"]["sample_id"] == sid]
+                    code_ctx = ""
+                    for r in sample_records:
+                        pp_file = run_dir / sid / "preprocess.json"
+                        if pp_file.exists():
+                            try:
+                                pp_data = json.loads(pp_file.read_text(encoding="utf-8"))
+                                code_ctx = pp_data.get("cropped_context", "")
+                            except Exception:
+                                pass
+                            break
+                    rank_predictions_by_composite(sample_records, rag_engine, code_ctx)
+
             metrics = compute_metrics(records)
             metrics["profile"] = run_spec.name
             metrics["repeat_index"] = repeat_index
+            if needs_revision:
+                metrics["revision_stats"] = revision_stats
             category_metrics = compute_group_metrics(records, "sample.category")
             variant_metrics = compute_group_metrics(records, "sample.variant")
             error_table = build_error_analysis_table(records)
@@ -270,6 +488,8 @@ def main() -> None:
 
             profile_history[run_spec.name]["repeat_metrics"].append(metrics)
             profile_history[run_spec.name]["records"].extend(records)
+            if needs_revision:
+                profile_history[run_spec.name]["revision_stats"].append(revision_stats)
             repeat_summary["profiles"].append(
                 {
                     "profile": run_spec.name,
@@ -417,6 +637,36 @@ def parse_args() -> argparse.Namespace:
         help="Ablation profiles to run. Defaults to the full baseline→crop_slither_multi ladder.",
     )
     parser.add_argument(
+        "--rag-enabled",
+        action="store_true",
+        default=False,
+        help="Enable RAG experiment profiles (rag_strong, rag_fewshot, etc.) instead of default ablation ladder.",
+    )
+    parser.add_argument(
+        "--rag-top-k",
+        type=int,
+        default=4,
+        help="Number of few-shot examples to retrieve from RAG vector DB.",
+    )
+    parser.add_argument(
+        "--enable-revision",
+        action="store_true",
+        default=False,
+        help="Enable iterative revision (compile-feedback loop) for LLM predictions.",
+    )
+    parser.add_argument(
+        "--max-revision-rounds",
+        type=int,
+        default=3,
+        help="Maximum revision rounds when --enable-revision is active.",
+    )
+    parser.add_argument(
+        "--enable-multi-dim",
+        action="store_true",
+        default=False,
+        help="Enable multi-dimension ranking for composite prediction scoring.",
+    )
+    parser.add_argument(
         "--max-samples",
         type=int,
         default=0,
@@ -428,6 +678,9 @@ def parse_args() -> argparse.Namespace:
 def resolve_run_names(args: argparse.Namespace) -> list[str]:
     if args.profiles:
         return args.profiles
+    # 如果启用了 RAG 模式，默认使用 RAG 实验 profiles
+    if args.rag_enabled:
+        return RAG_EXPERIMENT_RUNS.copy()
     return DEFAULT_ABLATION_RUNS.copy()
 
 
@@ -696,6 +949,7 @@ def build_prompt(
     preprocess_result: PreprocessResult,
     prompts_root: Path,
     run_spec: ExperimentRunSpec,
+    retrieved_examples: str = "",
 ) -> str:
     template = (prompts_root / run_spec.template_name).read_text(encoding="utf-8")
     safe_sample_id = redact_prompt_text(sample.sample_id)
@@ -708,7 +962,9 @@ def build_prompt(
     context_text = (
         preprocess_result.source_bundle[0].content if run_spec.use_raw_context else preprocess_result.cropped_context
     )
-    return template.format(
+
+    # 收集所有 format 变量，模板中多余的变量会被安全忽略
+    format_args = dict(
         sample_id=safe_sample_id,
         category=sample.category,
         main_file=safe_main_file,
@@ -717,7 +973,25 @@ def build_prompt(
         if run_spec.include_static_summary
         else "",
         cropped_context=redact_prompt_text(context_text),
+        retrieved_examples=retrieved_examples,
     )
+
+    # 对包含 {retrieved_examples} 的模板，如果未提供则使用默认文本
+    if "{retrieved_examples}" in template and not retrieved_examples:
+        format_args["retrieved_examples"] = (
+            "（未启用 RAG 检索，请仅基于当前代码上下文独立判断）"
+        )
+
+    # 安全 format：忽略模板中不存在的键
+    import string
+    template_keys = {
+        field_name
+        for _, field_name, _, _ in string.Formatter().parse(template)
+        if field_name is not None
+    }
+    filtered_args = {k: v for k, v in format_args.items() if k in template_keys}
+
+    return template.format(**filtered_args)
 
 
 def heuristic_predict(

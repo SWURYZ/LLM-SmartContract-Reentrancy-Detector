@@ -1,0 +1,70 @@
+【重入检测框架 — 基于合约标准的三步判定法】
+你将按以下三步框架分析目标合约是否包含重入漏洞：
+
+步骤 1 — Entry Point 识别（可劫持外部调用入口）：
+找出所有可能将控制权交给外部地址/合约的调用点。关键规则：
+- 低级调用 call{{value:...}} 向 msg.sender 发送 ETH → [HIJACKABLE] 攻击者可通过 fallback 回调重入
+- ERC777 的 transfer/transferFrom/burn → [HIJACKABLE] 触发 tokensToSend/tokensReceived hook
+- ERC721 的 safeTransferFrom → [HIJACKABLE] 触发 onERC721Received hook
+- ERC1155 的 safeTransferFrom → [HIJACKABLE] 触发 onERC1155Received hook
+- transfer/send 向外部地址发送 ETH → [HIJACKABLE] 触发 fallback 回调
+注意：记录每个 hijackable call 之后更新的状态变量（延迟更新变量 — taint source）
+
+步骤 2 — Reentry Point 识别（可利用操作检测）：
+找出所有 public/external 函数中是否存在可利用操作：
+- Direct（直接）：transfer/call{{value:}}/send 目标可为 msg.sender 的操作
+- Indirect（间接）：修改 Direct 操作所依赖状态变量的操作（如 delete 白名单、清零余额、修改权限标记）
+- 如果一个函数不含任何可利用操作，则它不是有效的 reentry point
+
+步骤 3 — 状态流追踪判定（Taint Flow）：
+回答：步骤1中的延迟更新变量（taint source）能否影响步骤2中的可利用操作（taint sink）？
+- 如果能 → 存在重入漏洞
+- 如果路径上有 nonReentrant / noReentrant / onlyOwner 保护 → 视保护强度决定
+- 注意：nonReentrant 必须在 _; 之前上锁才算有效保护。如果 modifier 中先执行 _; 再更新状态，则 nonReentrant 锁无效，仍可能被绕过
+
+【重入保护机制识别规则】
+- nonReentrant/noReentrant 修饰符的正确实现：在 _; 之前 locked=true 上锁，require(!locked) 阻止重入
+- 合约继承 ReentrancyGuard + 函数带 nonReentrant = safe（fixed），前提是 modifier 中 _; 在 locked=true 之后
+- 静态分析摘要中标注的 [HIJACKABLE] 和 [PROTECTION] 信息是重要的辅助判断依据
+
+请严格遵循以下约束：
+- MUST: 按 Entry Point → Reentry Point → Flow Check 的顺序逐步分析
+- MUST: 如果静态摘要明确指出 nonReentrant 保护充分且无绕过路径，判定为 safe
+- MUST NOT: 不能仅因看到 call{{value:...}} 就判定为有漏洞 —— 必须确认存在可劫持的回调路径 + 可利用操作 + 状态流可达
+- MUST NOT: 不能将"看起来像保护的字符串"（如 neverReceiveAirdrop、onlyOwner 等）等同于有效的重入保护
+- REMEMBER: 合约标准信息（ERC20/721/777/1155）告诉你哪些外部调用会触发 hook —— 这是判断是否 hijackable 的关键先验知识
+- REMEMBER: 跨合约场景中的外部 token 调用（如 ERC777.transfer）天然包含 hook 回调，需要特别警惕
+- REMEMBER: modifier 执行顺序：modifier 中 _; 之前的代码先执行，_ 代表函数体，_; 之后的代码在函数体执行后执行。如果外部调用发生在函数体中（_; 之后），而关键状态在 modifier 中 _; 之后才更新，这是一个危险信号
+
+样本编号: {sample_id}
+漏洞类别候选: {category}
+主文件: {main_file}
+辅助文件: {support_files}
+
+静态分析摘要（含合约标准信息）：
+{static_summary}
+
+代码上下文如下：
+
+{cropped_context}
+
+请只输出一个 JSON 对象，不要输出额外解释：
+{{
+  "is_vulnerable": true,
+  "vulnerability_type": "standard_reentrancy | reentrancy_via_modifier | cross_function_reentrancy | cross_contract_reentrancy | none",
+  "vulnerable_functions": ["functionName"],
+  "attack_path": "按 Entry Point → Reentry Point → Flow Check 描述攻击路径",
+  "confidence": 0.0,
+  "reasoning": "按三步框架简述分析过程",
+  "self_inspection": "按以下三维反思：(a) 对本次判断的核心代码证据列出1-2条；(b) 如果判断有误，最可能的原因是什么？(c) Prompt 中是否有表述不清之处？"
+}}
+
+【重要提醒 — 再次强调关键规则（Verbose Elaboration）】
+在做出最终判断前，请再次确认：
+1. Entry Point：外部调用是否真正可劫持？是否确认了 hook 触发机制？
+2. Reentry Point：是否确实存在可利用操作？direct 还是 indirect？
+3. Flow Check：延迟更新的状态变量能否确实影响可利用操作的执行条件？
+4. 保护机制：nonReentrant 锁是否在 _; 之前生效？是否有绕过路径？
+
+nonReentrant 保护只有在 modifier 中 _; 之前 locked=true 且 require(!locked) 严格阻止回调时才有效。
+任何在 _; 之后才执行状态更新的 modifier（即使名为 nonReentrant）都不构成有效保护。

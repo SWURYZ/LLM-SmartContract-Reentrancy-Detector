@@ -1,0 +1,56 @@
+【重入检测框架 — 保守基线 + 外科手术式增强】
+
+你是智能合约安全审计专家。请基于以下框架分步判断目标代码是否存在重入漏洞。
+
+【步骤 1 — Entry Point 识别】
+找出所有可能将控制权交给外部的调用点：
+- 低级调用 call{{value:...}} 向 msg.sender 发送 ETH → 攻击者可通过 fallback 回调重入
+- transfer/send 向外部地址发送 ETH → 同上
+- 注意：仅识别调用点，不在此步骤下结论
+
+【步骤 2 — Reentry Point 识别】
+找出其他 public/external 函数中是否存在可利用操作（直接转账或修改关键状态）。
+
+【步骤 3 — 保护机制检查（关键）】
+检查是否存在以下保护：
+- nonReentrant / noReentrant 修饰符：如果在 modifier 中 _; 之前执行 locked=true + require(!locked)，则此修饰符有效 → safe
+- **特别注意 modifier 执行顺序**：modifier 中 _; 之前的代码先执行，_; 代表函数体，_; 之后的代码在函数体执行完后才执行。如果外部调用在函数体中（_; 之后执行），而关键状态在 modifier 中 _; 之后才更新，则存在延迟更新窗口 → vulnerable
+- 如果 modifier 中先执行 _; 再更新状态（即使名叫 nonReentrant），此保护**无效**
+
+【步骤 4 — 状态流追踪】
+步骤1的外部调用是否发生在步骤2可利用操作所依赖的状态更新之前？如果是 → 重入漏洞。
+
+【判定约束】
+- MUST: 优先检查 nonReentrant 锁的正确性（在 _; 之前上锁 = 有效保护；在 _; 之后才更新状态 = 无效）
+- MUST: modifier 执行顺序是判断 modifier 重入的关键：_; 之后才执行的状态更新创造了重入窗口
+- MUST NOT: 不能仅因看到 call{{value:...}} 就判定有漏洞——必须确认：(a) 无有效 nonReentrant 锁，(b) 外部调用在关键状态更新之前
+- REMEMBER: 对于跨合约调用场景，额外标准：仅当外部调用可劫持 + 回调路径可达 + 延迟状态影响可利用操作 三者同时满足时才判定漏洞
+
+样本编号: {sample_id}
+漏洞类别候选: {category}
+主文件: {main_file}
+辅助文件: {support_files}
+
+静态分析摘要：
+{static_summary}
+
+代码上下文如下：
+
+{cropped_context}
+
+请只输出一个 JSON 对象，不要输出额外解释：
+{{
+  "is_vulnerable": true,
+  "is_vulnerable": true,
+  "vulnerability_type": "standard_reentrancy | reentrancy_via_modifier | cross_function_reentrancy | cross_contract_reentrancy | none",
+  "vulnerable_functions": ["functionName"],
+  "attack_path": "按 Entry→Reentry→Protection→Flow 描述攻击路径",
+  "confidence": 0.0,
+  "reasoning": "第一步分析的关键证据"
+}}
+
+【重要提醒 — 再次强调关键规则】
+做出最终判断前，请确认：
+1. modifier 中的 _; 是关键：_ 之前执行的代码是保护，_; 之后执行的代码是延迟操作。如果 nonReentrant 锁在 _; 之前上锁，保护有效；如果状态更新在 _; 之后，存在重入窗口。
+2. 跨合约调用场景：单一 hijackable 调用不足以构成漏洞——必须验证回调路径是否真的可达、延迟状态是否真的影响可利用操作。
+3. 当不确定时，宁可保守判断为 safe，也不要仅凭调用模式猜测漏洞。

@@ -1,33 +1,29 @@
 {
   "source_roots": [
     "/opt/uestc/external/solidity-security-by-example",
-    "/opt/uestc/external/smartbugs-curated",
-    "/opt/uestc/external/extra_reentrancy_pocs",
-    "/opt/uestc/external/crosschain_reentrancy_pairs"
+    "/opt/uestc/external/smartbugs-curated"
   ],
-  "sample_count": 41,
-  "positive_count": 33,
-  "negative_count": 8,
+  "sample_count": 31,
+  "positive_count": 27,
+  "negative_count": 4,
   "by_category": {
-    "standard_reentrancy": 24,
-    "reentrancy_via_modifier": 5,
-    "cross_function_reentrancy": 6,
-    "cross_contract_reentrancy": 6
+    "standard_reentrancy": 22,
+    "reentrancy_via_modifier": 3,
+    "cross_function_reentrancy": 3,
+    "cross_contract_reentrancy": 3
   },
   "by_variant": {
-    "insecure": 8,
-    "fixed": 8,
-    "vulnerable": 25
+    "insecure": 4,
+    "fixed": 4,
+    "vulnerable": 23
   },
   "by_source": {
     "serial_coder": 8,
-    "extra_reentrancy_pocs": 2,
-    "crosschain_reentrancy_pairs": 8,
     "smartbugs_curated": 23
   },
   "by_label_source": {
-    "paired_variant": 16,
-    "curated_annotation": 25
+    "paired_variant": 8,
+    "curated_annotation": 23
   },
   "optimization_notes": [
     "当前基准由两类数据源组成：serial-coder 的配对 fixed/insecure 样本，以及 SmartBugs curated 的 vulnerable-only 样本。",

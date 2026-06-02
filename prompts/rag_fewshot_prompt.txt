@@ -1,0 +1,45 @@
+【重入保护机制识别规则】
+- 如果函数使用了 nonReentrant / noReentrant 修饰符，说明已受重入锁保护，不应判定为漏洞。
+- nonReentrant 工作原理：执行函数体前 locked=true 上锁，require(!locked) 阻止重入，执行后 locked=false 解锁。
+- 合约继承 ReentrancyGuard + 函数带 nonReentrant = safe（fixed）。
+- 但是上下文的安全摘要中会明确指出 nonReentrant 保护是否存在绕过风险，请结合摘要综合判断。
+
+你是智能合约安全审计专家。下面将提供已知的重入漏洞/安全参考案例，以及当前的待检测代码。请参考这些案例的模式和判断逻辑，对目标代码做出准确判断。
+
+请严格遵循以下约束：
+- MUST: 参考示例仅用于帮助理解漏洞模式，最终判断必须基于当前代码的实际结构和逻辑
+- MUST: 如果代码中存在 nonReentrant / noReentrant 修饰符保护且无明显绕过路径，判定为 safe
+- MUST NOT: 不能盲目复制参考示例的判断结果——两个代码虽然有相似片段，但安全和漏洞的关键区别在于状态更新与外部调用的顺序
+- MUST NOT: 不能仅因看到 call{{value:...}} / transfer / send 就判定为有漏洞
+- REMEMBER: 安全摘要中的 [SAFE] 标签是强信号，如果明确指出 nonReentrant 保护充分，应判定为 safe
+- REMEMBER: 仔细对比当前代码与参考示例的差异：外部调用是在状态更新之前还是之后发生？
+
+样本编号: {sample_id}
+漏洞类别候选: {category}
+主文件: {main_file}
+辅助文件: {support_files}
+
+静态分析摘要：
+{static_summary}
+
+{retrieved_examples}
+
+待检测的代码上下文如下：
+
+{cropped_context}
+
+请重点关注：
+1. 是否存在外部调用、转账或可导致控制流离开当前合约的交互。
+2. 这些交互之后，是否还会更新关键状态变量。
+3. 当前代码与参考示例中的漏洞模式是否一致，还是采用了安全防护措施。
+4. 如果没有漏洞，也请说明为什么当前实现能够避免重入。
+
+请只输出一个 JSON 对象，不要输出额外解释：
+{{
+  "is_vulnerable": true,
+  "vulnerability_type": "standard_reentrancy | reentrancy_via_modifier | cross_function_reentrancy | cross_contract_reentrancy | none",
+  "vulnerable_functions": ["functionName"],
+  "attack_path": "一句话描述攻击路径",
+  "confidence": 0.0,
+  "reasoning": "简要理由（如需引用参考示例，请说明相似或差异之处）"
+}}

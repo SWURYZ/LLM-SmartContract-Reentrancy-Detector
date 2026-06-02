@@ -3,12 +3,16 @@ __pycache__/
 *.pyc
 *.pyo
 
+# Virtual env
+.venv/
+
 # Logs
 *.log
 
-# Large binary assets (don't upload to GitHub)
+# Large binary assets / PDFs (don't upload to GitHub)
 slides/
 external/
+*.pdf
 
 # IDE
 .vscode/
@@ -18,9 +22,11 @@ external/
 .DS_Store
 Thumbs.db
 
-# Runs (only keep summary files)
+# Runs (output data — too large, keep only summary)
 runs/
-!runs/*/summary.json
-!runs/*/run_config.json
 
-# Precomputed slice cache (uploaded for reproducibility)
+# Shell scripts with potential tokens
+run_rag_experiment.sh
+
+# External subproject
+LLM-SmartContract-Reentrancy-Detector/

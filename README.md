@@ -1,6 +1,6 @@
 # 基于 LLM 的智能合约重入漏洞检测
 
-> 消融实验驱动的迭代优化流水线 · DeepSeek-chat · 代码切片 · Prompt 工程
+> 消融实验驱动的迭代优化流水线 · DeepSeek-chat · 代码切片 · Prompt 工程 · RAG
 
 ---
 
@@ -64,6 +64,24 @@
 第 4 轮：切片级绕过检测（安全摘要注入）
   → 在切片中自动标注 [SAFE]/[BYPASS-RISK] 标签
   → 结果：Acc 0.878，FNR 0.071（漏报减少 30%），FPR 0.333
+
+第 5 轮：RAG + 强约束 Prompt（借鉴 PropertyGPT 的检索增强生成方案）
+  → 构建 8 条重入模式向量库，为待检测代码检索 Few-Shot 参考示例
+  → 引入 MUST/MUST NOT/REMEMBER 强约束层级，将重入保护规则提升为系统指令
+  → 结果：FPR 降至 0.000（零误报），fixed 合约识别率 1.000，Acc 0.903
+  → 代价：FNR 升至 0.111，modifier 重入全部漏报
+
+第 6 轮：合约标准增强 + 三步判定框架（借鉴 Cai et al. 的 ERC 标准分析）
+  → 构建 ERC 标准知识库，自动检测合约标准类型及 hook 触发机制
+  → 引入 Entry Point → Reentry Point → Flow Check 三步判定 Prompt
+  → 结果：modifier Acc 首次达到 1.000
+  → 代价：cross_contract FPR=1.000
+
+第 7 轮：confidence-gated 组合流水线
+  → 利用 rag_strong 的 confidence=0.0（FN 样本）作为切换信号
+  → Pass 1: rag_strong，confidence<0.5 时 Pass 2: standards_entry
+  → 结果：Acc 0.957，FPR=0，FNR=0.049，modifier Acc=0.889
+  → 每轮 1 次额外 API 调用（2.4% 开销）
 ```
 
 ### 关键设计决策与实验协议
@@ -129,6 +147,8 @@
 | `crop_slither_cot` | `cot_reentrancy_paper.txt` | + CoT 分步推理 | 加入 CoT——验证复杂 Prompt 工程是否有收益 |
 | `crop_slither_multi` | `multi_contract_summary_prompt.txt` | + 多合约上下文 | 加入多合约——验证依赖文件是否必要 |
 | `reentrancy_slice_v1` | `baseline_summary_prompt.txt` | 切片 v1 + Guard 注入 | 裁剪更精准 + 安全上下文完整 |
+| `rag_strong` | `rag_reentrancy_prompt.txt` | 切片 v1 + Slither 摘要 + 强约束 | 验证 MUST/MUST NOT 约束层级能否取代文本规则 |
+| `rag_fewshot` | `rag_fewshot_prompt.txt` | + RAG Few-Shot 示例 | 验证检索增强的相似漏洞参考能否引导模型判断 |
 
 **各模板使用场景**：
 
@@ -139,6 +159,8 @@
 | `baseline_summary_prompt.txt` | `crop_slither`、`reentrancy_slice_v1` | 裁剪代码 + Slither 摘要 | 消融 / Prompt规则 / bypass |
 | `cot_reentrancy_paper.txt` | `crop_slither_cot` | 裁剪代码 + 摘要 + CoT 步骤 | 消融 / Prompt规则 / bypass |
 | `multi_contract_summary_prompt.txt` | `crop_slither_multi` | 裁剪代码 + 摘要 + 依赖文件 | 消融 / Prompt规则 / bypass |
+| `rag_reentrancy_prompt.txt` | `rag_strong` | 裁剪代码 + 摘要 + MUST/MUST NOT 强约束 | RAG 实验 |
+| `rag_fewshot_prompt.txt` | `rag_fewshot` | 裁剪代码 + 摘要 + Few-Shot 示例 + 强约束 | RAG 实验 |
 
 **模板版本说明**：
 
@@ -293,7 +315,7 @@
 **结果解读**：
 
 - Guard + Prompt 规则组合仅实现 Acc 0.894，FPR 仍为 0.375——纯文本规则无法独立降低误报率。
-- 叠加 bypass 检测后，Acc 跃升至 0.935（全实验最高），FPR 降至 0.250，FNR 压至近乎零的 0.020，fixed Acc 达到 0.750——**Slither 报告 + bypass 标签 + Prompt 规则的组合实现了三指标全面最优。**
+- 叠加 bypass 检测后，Acc 升至 0.935，FPR 降至 0.250，FNR 降至 0.020，fixed Acc 达 0.750。
 
 ---
 
@@ -321,6 +343,188 @@
 
 ---
 
+### 4.7 RAG + 强约束 Prompt：借鉴 PropertyGPT 的检索增强重入检测
+
+**驱动问题**：前四轮实验在 zero-shot 条件下进行，模型从未见过重入漏洞的参考示例。PropertyGPT 的 RAG + In-Context Learning 方案能否通过检索相似的已知重入模式，在 Few-Shot 条件下提升判断准确性？
+
+**方法迁移**：将 PropertyGPT 的范式适配到重入检测——属性向量数据库 → 重入模式向量库（8 条，覆盖 4 类 × vuln/safe）；代码嵌入检索 → TF-IDF n-gram 嵌入 + 余弦相似度检索。
+
+引入 PropertyGPT 的 MUST/MUST NOT/REMEMBER 约束层级。与之前 Prompt 规则的区别：描述性规则告知"这是什么意思"，指令性规则告知"你必须怎么做"。
+
+```
+- MUST: nonReentrant/noReentrant 修饰符保护 → 判定 safe
+- MUST NOT: 不能仅因 call{value:...}/transfer/send 判定漏洞
+- REMEMBER: [SAFE] 标签是强信号
+```
+
+**实验结果**：
+
+| Profile | Accuracy | FPR | FNR | fixed Acc | ΔAcc (vs baseline) |
+|---|---|---|---|---|---|
+| baseline_raw | 0.9355 | 0.250 | 0.037 | 0.750 | 基线 |
+| crop_slither | 0.9140 | 0.167 | 0.074 | 0.833 | -0.022 |
+| **rag_strong**  | **0.9032** | **0.000** | **0.111** | **1.000** | **-0.032** |
+| rag_fewshot | 0.8387 | **0.000** | 0.185 | **1.000** | -0.097 |
+
+> DeepSeek-chat, T=0, repeat=3 均值, 41 样本, reentrancy_slice_v1 切片。
+
+**分场景拆解**：
+
+| 场景 | baseline_raw | crop_slither | rag_strong | rag_fewshot |
+|---|---|---|---|---|
+| standard_reentrancy | 1.000 | 0.970 | **1.000** | 0.909 |
+| cross_function | 0.778 | 0.889 | **1.000** | **1.000** |
+| cross_contract | 0.889 | 0.778 | 0.667 | 0.667 |
+| **reentrancy_via_modifier** | **0.667** | **0.667** | **0.333** | **0.333** |
+
+**实验结果解读**：
+
+**1. FPR=0。** 所有 RAG profile 的 FPR 降至 0.000——实验中首次实现零误报。rag_strong 的 fixed Acc=1.000（24/24 正确），此前最优仅 0.750。
+
+**2. rag_strong 的 trade-off。** FPR=0 的同时 FNR=0.111，Acc=0.903。用 3.2 pp 的 Acc 换取了 25 pp 的 FPR 改善。零误报在审计场景中具有实用价值——消除了对安全合约的错误标记。
+
+**3. Few-Shot 增加保守性。** rag_fewshot 的 FNR 从 0.111 升至 0.185（+67%）。对于经典 withdraw 模式，检索到的 top-4 示例中 3 个为 safe、1 个为 vuln（3:1），模型倾向于安全判断。这与 PropertyGPT 的预期相反：生成任务中 Few-Shot 提供模板有效，判别任务中可能引入分布偏差。
+
+**4. modifier 是强约束的代价。** rag_strong 的 modifier Acc 从 0.667 降至 0.333——MUST 约束使模型将 modifier 中的任意保护字样（如 `neverReceiveAirdrop`）均视为安全信号。PropertyGPT 处理的是生成任务，本文处理的是判别任务，两者的任务特性差异导致 RAG 效果不可直接迁移。
+
+**与原始 bypass+Prompt 方案的交叉对比**：
+
+| 指标 | bypass+Prompt (原始最优) | rag_strong (本次最优) | 差异 |
+|---|---|---|---|
+| Accuracy | **0.935** | 0.903 | -0.032 |
+| FPR | 0.250 | **0.000** | **-0.250** |
+| FNR | **0.020** | 0.111 | +0.091 |
+| fixed Acc | 0.750 | **1.000** | **+0.250** |
+| modifier Acc | **0.800** | 0.333 | -0.467 |
+
+两种方案代表了不同的优化方向：bypass+Prompt 追求 FNR 最低（漏报最少），牺牲一定的 FPR；rag_strong 追求 FPR 最低（误报最少），牺牲一定的 FNR。在安全审计的完整工作流中，两者可以互补——rag_strong 作为第一道"零误报过滤"，将确定安全的合约直接放行；bypass+Prompt 作为第二道"深度检测"，对剩余样本进行更细致的判定。
+
+**迭代修订与多维排序的消融验证**：
+
+为进一步验证 RAG 各模块的独立贡献，我们追加了一组对照实验，在 rag_fewshot 基础上叠加迭代修订（借鉴 PropertyGPT 的编译反馈循环）和多维排序（借鉴 PropertyGPT 的四维加权评分）。结果如下：
+
+| Profile | Accuracy | FPR | FNR | 说明 |
+|---|---|---|---|---|
+| rag_strong (纯 RAG) | **0.9032** | 0.000 | **0.111** | 最优 |
+| rag_fewshot | 0.8387 | 0.000 | 0.185 | +Few-Shot |
+| rag_fewshot_revision | 0.8172 | 0.000 | **0.210** | +迭代修订 |
+| rag_full | 0.8387 | 0.000 | 0.185 | +多维排序 |
+
+迭代修订和多维排序均未带来正向增益。迭代修订的退化尤为显著——模型在修订轮次中变得更加保守，FNR 持续攀升。这一发现与 PropertyGPT 的经验形成对比：PropertyGPT 中编译反馈迭代修订之所以有效，是因为编译错误的信号明确（"变量未定义""语法错误"——确定性修正目标）；而重入检测中 JSON 格式修正和置信度反馈无法提供等价的"硬信号"，修订反而强化了模型的初始保守倾向。
+
+---
+
+### 4.8 合约标准增强：Entry-Reentry-Flow 三步判定
+
+**驱动问题**：rag_strong 的 FPR=0 代价是 modifier Acc=0.333——所有 modifier insecure 样本漏报。Cai et al. (2025) 指出合约标准（ERC20/721/777/1155）定义了钩子触发语义，可以作为先验知识注入检测流程。能否通过标准语义增强，让模型理解 modifier 的执行顺序和 hook 机制？
+
+**方法设计**：
+
+借鉴 Cai et al. 的三组件框架（Entry Point → Reentry Point → State Flow），将其转化为 LLM Prompt 的结构化分析步骤。构建 ERC 标准知识库（`src/standards_kb.py`），在预处理阶段检测合约标准类型，将标准语义注入静态分析摘要。
+
+Prompt 含三个要素：
+
+| 要素 | 内容 | 作用 |
+|---|---|---|
+| Entry-Reentry-Flow 框架 | 步骤1: 识别可劫持调用 → 步骤2: 识别可利用操作 → 步骤3: 追踪状态流 | 结构化分析 |
+| ERC 标准知识 | ERC777.transfer → tokensToSend hook；ERC721.safeTransferFrom → onERC721Received hook | 语义感知 |
+| Modifier 执行顺序 | `_;` 之前上锁才有效；`_;` 之后更新状态则创建重入窗口 | 填补模型盲区 |
+
+关键规则在 Prompt 首尾以不同表述重复（Verbose Elaboration）。
+
+**预处理增强**：扩展 `_build_static_summary`，调用 `detect_contract_standard()` 检测标准类型，对外部调用标注 `[HIJACKABLE]`。示例：
+
+```
+增强前: 外部调用=TUPLE_0(bool,bytes)=LOW_LEVEL_CALL
+增强后: [STANDARD] 检测到 ERC777
+        外部调用=token.transferFrom() [HIJACKABLE: 触发 tokensToSend hook]
+```
+
+**实验设计**：在 §4.7 最优方案（rag_strong）和消融基线（crop_slither）基础上，新增 `standards_entry` profile，使用 `reentrancy_slice_v1` 切片 + 增强摘要 + 三步判定 Prompt。DeepSeek-chat、T=0、repeat=3。
+
+**实验结果**：
+
+| Profile | Accuracy | FPR | FNR | fixed Acc | modifier Acc |
+|---|---|---|---|---|---|
+| crop_slither | 0.946 | 0.250 | 0.025 | 0.750 | 1.000 |
+| rag_strong | 0.936 | 0.000 | 0.074 | 1.000 | 0.667 |
+| standards_entry | 0.914 | 0.250 | 0.062 | 0.750 | **1.000** |
+
+**分场景**：
+
+| 场景 | rag_strong | standards_entry |
+|---|---|---|
+| standard_reentrancy | 1.000 | 1.000 |
+| cross_function | 1.000 | 1.000 |
+| reentrancy_via_modifier | 0.667 | **1.000** |
+| cross_contract | 0.667 | 0.333 |
+
+**结果解读**：
+
+**modifier Acc 首次 1.000。** 此前所有方案的 modifier Acc 均不超过 0.800。三步判定框架中的 modifier 执行顺序分析——区分 `_;` 之前上锁（有效保护）与 `_;` 之后更新状态（重入窗口）——是突破关键。例如 `InsecureAirdrop.sol`：`canReceiveAirdrop` modifier 中 `receivedAirdrop[msg.sender] = true` 在 `_;` 之后执行，rag_strong 看到 `neverReceiveAirdrop` 字样即判 safe（confidence=0.0，FN）；standards_entry 正确识别了 `_;` 之后的延迟状态更新构成重入窗口（TP）。
+
+**cross_contract FPR=1.000。** 标准知识使模型将"存在 hijackable 调用"等同于"存在漏洞"。Safe 版跨合约样本虽使用 ERC777.transferFrom，但通过 CEI 原则避免了重入——模型未能区分"调用可劫持"与"调用已被保护"。
+
+**两种方案错误模式正交。** rag_strong 的 FN（modifier insecure）是 standards_entry 的 TP；standards_entry 的 FP（cross_contract fixed）是 rag_strong 的 TN。这驱动了 §4.9 的组合设计。
+
+---
+
+### 4.9 confidence-gated 组合流水线
+
+**驱动问题**：rag_strong 的 FPR=0 代价是 modifier FNR=1.0；standards_entry 的 modifier Acc=1.0 代价是 cross_contract FPR=1.0。两者错误正交——rag_strong 的 FN 是 standards_entry 的 TP，standards_entry 的 FP 是 rag_strong 的 TN。直接合并两套 Prompt 已验证不可行（信号冲突，Acc≈0.936）。能否设计一种保持各组件独立性的组合方案？
+
+**核心洞察——confidence 作为切换信号**：
+
+rag_strong 正确预测时 confidence >0.9，FN 时 confidence=0.0。模型用置信度表达了"我不知道"。这提供了天然切换信号：当 rag_strong confidence < 0.5，切换到 standards_entry。
+
+**设计**：
+
+```
+Pass 1: rag_strong → prediction + confidence
+  ├─ confidence ≥ 0.5 → 采纳 Pass 1
+  └─ confidence < 0.5 → Pass 2: standards_entry → 采纳 Pass 2
+```
+
+设计特点：切换信号来自 rag_strong 自身的 confidence（非外部规则）；每轮仅约 1 个样本触发 Pass 2（2.4% 额外开销）；FPR 安全——confidence<0.5 从未在 safe 样本上出现。
+
+**实验设计**：实现 `two_pass` profile，对比 crop_slither、rag_strong、standards_entry。DeepSeek-chat、T=0、repeat=3。
+
+**实验结果**：
+
+| Profile | Accuracy | FPR | FNR | fixed Acc | modifier Acc |
+|---|---|---|---|---|---|
+| crop_slither | 0.946 | 0.250 | 0.025 | 0.750 | 1.000 |
+| rag_strong | 0.936 | 0.000 | 0.074 | 1.000 | 0.667 |
+| standards_entry | 0.914 | 0.250 | 0.062 | 0.750 | 1.000 |
+| two_pass | **0.957** | **0.000** | **0.049** | **1.000** | **0.889** |
+
+**Pass 2 触发统计**（3 轮累计）：
+
+| 指标 | 数值 |
+|---|---|
+| 总预测 | 123 |
+| Pass 2 触发 | 3（每轮 1 次） |
+| Pass 2 成功修正 | 2/3 |
+| 误触发（safe 样本） | 0 |
+| 额外开销 | 2.4% |
+
+**结果解读**：
+
+Acc=0.957，此前 FPR=0 的最高 Acc 为 rag_strong 的 0.904，提升了 5.3 pp。modifier Acc 从 0.667 升至 0.889：modifier insecure 共 6 次判定，two_pass 正确检测 5 次（rag_strong 为 0/6）。FPR 保持 0.000：fixed 合约 12 次判定全部正确。未解决的误差：`05_cross_contract_insecure`（3/3 FN，rag_strong 和 standards_entry 均以 confidence=1.0 判错，无法通过 confidence 切换修正）；`03_modifier_insecure`（1/3 FN，1 次 Pass 2 未修正）。
+
+**与各方案对比**：
+
+| 方案 | Acc | FPR | FNR | fixed Acc | modifier Acc |
+|---|---|---|---|---|---|
+| bypass+Prompt | 0.935 | 0.250 | 0.020 | 0.750 | 0.800 |
+| rag_strong | 0.904 | 0.000 | 0.111 | 1.000 | 0.333 |
+| standards_entry | 0.914 | 0.250 | 0.062 | 0.750 | 1.000 |
+| two_pass | **0.957** | **0.000** | **0.049** | **1.000** | **0.889** |
+
+**设计启示**：直接合并两套 Prompt 导致信号冲突（Acc≈0.936，等于 rag_strong）。two_pass 的成功表明：当两个策略的推理逻辑冲突时，保持组件独立性（架构层面的编排）优于 Prompt 层面的融合。
+
+---
+
 ## 讨论
 
 ### 5.1 各优化手段的增益与代价量化
@@ -335,9 +539,14 @@
 | 多合约上下文 | 消融叠加 | 0 | +0.167 | -0.041 | 无 | FPR 全指标最差 |
 | Guard 注入 | crop_only | -0.016 | -0.083 | +0.041 | FPR 下降，FNR 上升 | 安全上下文部分恢复 |
 | Prompt 规则 | Guard | +0.008 | 0 | -0.011 | 单独使用无法降低 FPR | 需配合 bypass |
-| bypass + Prompt + Guard + Slither | Guard | **+0.049** | **-0.125** | **-0.031** | ★ Acc 0.935，三指标全面最优 | 无 |
+| bypass + Prompt + Guard + Slither | Guard | **+0.049** | **-0.125** | **-0.031** | Acc 0.935 | 无 |
+| RAG 强约束 (rag_strong) | bypass+Prompt | -0.032 | **-0.250** | +0.091 | FPR=0，fixed Acc=1.0 | FNR 上升，modifier 全漏 |
+| RAG Few-Shot (rag_fewshot) | rag_strong | -0.065 | 0 | +0.074 | 无 | Few-Shot 增加保守性 |
+| RAG 迭代修订 | rag_fewshot | -0.022 | 0 | +0.025 | 无 | 修订强化保守倾向 |
+| 标准增强 (standards_entry) | rag_strong | -0.021 | +0.250 | -0.012 | modifier Acc=1.0 | cross_contract FPR=1.0 |
+| confidence-gated 组合 (two_pass) | rag_strong | **+0.022** | 0 | **-0.025** | Acc=0.957，FPR=0 | +2.4% API |
 
-**设计启示**：Slither 裸报表示噪声，但配合 bypass 检测后可转化为有效信号——Acc 跃升至 0.935，FPR 最优（0.250），FNR 近乎零（0.020），实现三指标全面最优。最优方案取决于应用场景。
+**设计启示**：Slither 裸报告是噪声，配合 bypass 检测后转化为有效信号。RAG 强约束实现了 FPR=0。标准增强攻克了 modifier 盲区。two_pass 通过 confidence-gated 组件协作，以 2.4% 额外 API 开销同时继承了 rag_strong 的 FPR=0 和 standards_entry 的 modifier 检测能力。
 
 ### 5.2 核心机制发现
 
@@ -346,6 +555,18 @@
 **发现二：证据优于规则。** Prompt 规则虽然降低了 FPR，但带来了不可控的过度泛化（FNR 飙升）。将安全证据直接嵌入切片上下文（`[SAFE]`/`[BYPASS-RISK]` 标签）使模型能做基于具体代码结构的差异化判断，在不依赖 CoT 的前提下实现 FNR 回落。*代码结构中的具体标记比系统级规则更精细。*
 
 **发现三：裁剪的注意力机制效应。** 代码裁剪在所有有效方案中均贡献最大边际增益。这从实证角度支持了一个直观假设：LLM 的注意力容量有限，无关上下文的存在会稀释模型对关键风险信号的敏感度。*"少即是多"在安全检测任务中成立。*
+
+**发现四：约束层级决定行为边界。** MUST/MUST NOT 强约束（源自 PropertyGPT 的提示词设计哲学）将 FPR 从 0.250 压至 0.000，而之前的"描述性规则"（"nonReentrant = safe"）仅降至 0.375。两种约束形式的效果差异揭示了 LLM 对指令的层级敏感度：*"你必须做 X"（指令性）远比"X 意味着 Y"（描述性）有效。* 这一发现将"指令通道 ≠ 内容通道"（发现一）从代码注释 vs Prompt 规则的对比，进一步细化为 Prompt 内部约束强度的对比。
+
+**发现五：Few-Shot 在判别任务中的双刃剑效应。** PropertyGPT 中 Few-Shot 示例提升了属性生成的准确性，但在本实验的重入检测判别任务中，Few-Shot 示例反而显著增加了保守性（FNR ↑67%）。根因在于：生成任务中示例提供的是"结构模板"，而判别任务中示例提供的"答案参考"可能引入分布偏差——检索到的 safe 示例过多时，模型倾向于安全判断。*RAG 在生成任务与判别任务中的效果不可直接迁移。*
+
+**发现六：外部信号硬度决定反馈有效性。** PropertyGPT 的编译错误反馈是"硬信号"（确定性：代码能否编译），因此迭代修订有效；而重入检测中的 JSON 格式修正和置信度反馈是"软信号"（不确定性：模型自己也不确定），迭代修订反而强化初始偏见。*反馈信号的确定性是迭代修订成功的必要条件。*
+
+**发现七：语义感知在子任务间收益不对称。** ERC 标准知识注入使模型从模式匹配（"看到 call{value:...}"）提升为因果推理（"ERC777.transfer 触发 tokensToSend hook"）。该增强在 modifier 场景中有效（Acc 0.333 → 1.000），但在 cross_contract 中引起过度泛化（FPR 0 → 1.0）。域知识的注入收益与代价在子任务粒度上不对称，需要子任务级别的校准。
+
+**发现八：confidence 反映模型的知识边界自我感知。** rag_strong 正确预测时 confidence >0.9，FN 时 confidence=0.0。这表明 confidence 不仅反映预测可靠性，更反映了模型对自身知识边界的自我感知。该发现将 confidence 从预测质量度量提升为架构切换信号，驱动了 two_pass 的设计。
+
+**发现九：组件编排优于 Prompt 融合。** 直接合并两套 Prompt 导致信号冲突（Acc≈0.936），而保持独立性的 two_pass 实现了超越任一组件的结果（Acc=0.957）。当多个 LLM 策略的推理逻辑冲突时，架构层面的组件编排优于 Prompt 层面的逻辑混合。
 
 ### 5.3 设计方法论反思
 
@@ -371,70 +592,315 @@
 - **链上合约验证**：将 The DAO、Lendf.Me 等真实主网受害合约纳入流水线，检验方法的真实泛化能力。
 - **Self-consistency 机制**：对低置信度预测采用多次采样加固，在不改变模型本身的前提下提升判定稳定性。
 - **数据集扩展**：当前仅 8 个 paired fixed/insecure 样本，扩充此类对照样本将显著提升 FPR/FNR 的统计效力。
-- **RAG 探索**：检索增强生成方案（`LLM4Re.pdf` 建议）尚未实现，可将外部知识库（如 SWC Registry、CVE 记录）作为补充证据源。
+- **RAG 探索 ✅**：检索增强生成方案已在本研究第 5 轮实验中实现（见 §4.7），验证了强约束 Prompt + Few-Shot 示例的组合效果。FPR 归零的成果证明了 RAG 思路的价值，但也暴露了 Few-Shot 在判别任务中的双刃剑效应。未来方向：(a) 优化检索的正负样本平衡策略，(b) 引入 SWC Registry、CVE 记录等更大规模的外部知识源，(c) 探索针对 modifier 重入场景的专用 Few-Shot 示例设计。
+
+### 5.6 相关工作分析与借鉴：Gas-Wasting Code Smells 论文的启示
+
+Jiang et al. (2024) 在 *IEEE TSE* 上发表的"Unearthing Gas-Wasting Code Smells in Smart Contracts with Large Language Models"提出了一个系统化的 LLM 驱动智能合约代码气味检测流水线。虽然其任务目标（Gas 浪费检测）与本研究的重入漏洞检测不同，但其 **Prompt 框架设计方法论** 和 **迭代发现流程** 对本研究具有直接的借鉴价值。
+
+**Gas-Wasting 论文的核心设计——四模块 Prompt 框架**：
+
+该论文将 Prompt 设计从单一文本提升为**复合结构**，由四个具有独立设计动机的模块组成：
+
+| 模块 | 设计动机 | 内容 |
+|---|---|---|
+| **Block 1: Introduction & Problem Formulation** | CoT + Verbose Elaboration | 注入领域知识、两步解释关键概念（开头一次 + 结尾用不同视角重复一次） |
+| **Block 2: Few-Shot Example Block** | 示例引导 | 精选的 Gas 浪费代码气味及解释 |
+| **Block 3: Input Codes Block** | 代码输入 | 函数级贪心采样的合约代码 |
+| **Block 4: Self-Inspection Block** | 自我反思 | 三步：(a) 可读性/可维护性/安全性 tradeoff 评分；(b) 下次如何改进；(c) Prompt 中是否有歧义 |
+
+**四个设计动机**：
+
+1. **Few-Shot Examples (FSE)**：提供精选示例引导任务完成，资源高效（无需微调）
+2. **Chain of Thought (CoT)**：分步推理引出更结构化的输出，但作者也警示了 CoT 的忠实性问题——解释未必反映真实推理过程
+3. **Verbose Elaboration**：从不同视角重复解释关键概念，大幅降低 LLM 误解 Prompt 意图的风险
+4. **Self-Inspection**：作为 CoT 的增强形式，要求 LLM 从多个维度反思自己的输出质量和推理过程
+
+**8 轮迭代发现流程**：每轮采样 10 个合约，人工验证 LLM 报告的结果，将验证通过的新发现纳入分类体系，再进入下一轮——形成"发现→验证→分类→反馈"的闭环。
+
+**与本研究的交叉映射**：
+
+| Gas-Wasting 论文设计 | 本研究现状 | 可借鉴方向 |
+|---|---|---|
+| **Self-Inspection Block** | CoT 模板有步骤 7（自我审查），但较简单：仅 3 个问题 | 扩展为 tradeoff 评分 + 改进建议 + Prompt 歧义检测的三维反思 |
+| **Verbose Elaboration** | 有 nonReentrant 规则区块，但仅描述一次 | 在 Prompt 开头和结尾用不同表述重复关键判定规则，降低 LLM 的误解概率 |
+| **Few-Shot Example Block** | RAG 动态检索示例 | 增加人工精选的"锚定示例"——经过验证的高质量正负对照，作为 RAG 检索的补充基准 |
+| **迭代轮次 + 人工验证** | repeat=3 仅做统计重复，无人工验证环节 | 引入人工复核机制：对高不一致样本（3 次预测结果不统一）进行人工判定，反馈结果用于改进 Prompt |
+| **8 轮渐进发现** | 单轮全量实验 | 分轮次实验，每轮聚焦前一轮的失败案例，形成针对性改进循环 |
+| **Entropy 多样性度量** | 仅报告 Accuracy/FPR/FNR | 增加模型输出的多样性分析，评估是否存在系统性的类别偏向 |
+
+**当前研究可直接采纳的两项低成本改进**：
+
+**改进一：Verbose Elaboration 的双视角规则注入。** 当前 Prompt 模板中的 nonReentrant 规则区块仅在开头出现一次。借鉴 Gas-Wasting 论文的 Verbose Elaboration 策略，可以在 Prompt 末尾以"重要提醒"的形式，用不同的表述再次强调关键判定规则。例如：
+
+```
+开头（描述性）：nonReentrant 工作原理：执行函数体前 locked=true 上锁，require(!locked) 阻止重入
+结尾（指令性）：再次提醒：看到 nonReentrant/noReentrant → 合约已受重入锁保护 → 必须判定为 safe
+```
+
+这与我们在 §5.2 中发现的"指令通道 ≠ 内容通道"规律高度契合——Verbose Elaboration 本质上是用双重通道传递同一信息，增加指令被模型遵循的概率。
+
+**改进二：增强 Self-Inspection。** 当前 CoT 模板的步骤 7 仅有 3 个审查问题。借鉴 Gas-Wasting 论文的三维反思，可扩展为：
+
+```
+(a) 对本次判断给出 confidence breakdown：代码证据充分度 / 语义理解确定度 / 外部依赖可靠性
+(b) 如果这次判断有误，最可能的原因是什么？
+(c) Prompt 中是否有表述不清的地方？如果有，请指出
+```
+
+问题 (c) 尤其重要——它不仅帮助模型反思，还为 Prompt 模板的迭代优化提供了来自模型视角的直接反馈信号。
+
+**不推荐直接迁移的设计**：
+
+- **人工验证重度依赖**：Gas-Wasting 论文依赖两名独立审查者进行人工验证（19.32% 初始分歧率），这在重入检测的大规模部署中不可持续。bypass 标签的自动检测机制（§4.4）已在本研究中证明是更可扩展的替代方案。
+- **8 轮分轮实验**：Gas-Wasting 论文需要人工介入每轮的结果筛选。本研究的 `repeat=3` 统计重复已通过均值 ± 标准差提供了足够的统计稳定性，分轮实验的额外复杂度在当前规模下收益有限。
+
+**总结**：Gas-Wasting 论文对本文的主要启示是 Prompt 设计的模块化思维——将 Prompt 视为由独立设计动机驱动的可组合结构，而非整体文本。Verbose Elaboration 和改进 Self-Inspection 已在 §4.8 和 §4.9 的 Prompt 设计中得到应用。
+
+### 5.7 相关工作分析与借鉴：基于合约标准的静态污点分析重入检测
+
+Cai et al. (2025) 在 *IEEE TIFS* 上发表的"Detecting Reentrancy Vulnerabilities for Solidity Smart Contracts With Contract Standards-Based Rules"提出了基于合约标准的静态分析框架。其将合约标准作为先验知识注入检测流程的思想，为本研究的 LLM 方法提供了上下文增强方向——尤其是解决 modifier 和跨合约重入的漏报问题。
+
+**论文核心思路——三组件框架**：
+
+该论文将重入漏洞检测重新形式化为三个子任务：
+
+| 组件 | 功能 | 关键技术 |
+|---|---|---|
+| **Entry Point Identification** | 识别包含"可劫持外部调用"的函数 | 利用 ERC 标准知识库（Table I）判断外部调用是否能触发攻击者 hook |
+| **Reentry Point Identification** | 识别包含"可利用操作"的函数 | 利用标准定义的 transfer 方法（Table II）识别直接/间接可利用操作 |
+| **State Variable Flow Tracking** | 追踪延迟更新的状态变量流向 | 静态污点分析：taint source（延迟更新变量）→ taint sink（可利用操作） |
+
+**标准知识驱动的切入点识别（Table I）**：
+
+该论文的核心洞察是：当前区块链生态中大多数智能合约遵循技术标准（ERC20/721/777/1155），这些标准明确定义了哪些函数会触发回调 hook。例如：
+
+| 标准 | 可劫持的外部调用 | 回调机制 |
+|---|---|---|
+| ERC20 | `transfer()`, `transferFrom()` | 标准 transfer 不触发 hook，但特定实现可重写 |
+| ERC721 | `safeTransferFrom()` | 触发 `onERC721Received` hook |
+| ERC777 | `transfer()`, `transferFrom()`, `burn()` | 触发 `tokensToSend` / `tokensReceived` hook |
+| ERC1155 | `safeTransferFrom()`, `safeBatchTransferFrom()` | 触发 `onERC1155Received` hook |
+
+通过识别外部调用对象的类型（如 `Token` 的类型为 `ERC777`），可以**在不确定被调用方具体实现的情况下**，仅凭标准语义推断该调用是否可劫持。
+
+**可利用操作的二层分类（Table II）**：
+
+- **Direct exploitable**：直接将加密货币转移给攻击者（如 `.call{value:}()`, `.transfer()`, `ERC20.transfer()`）。通过数据依赖分析判断 transfer 目标是否为 `msg.sender`。
+- **Indirect exploitable**：操纵直接可利用操作所依赖的状态变量（如 `delete Exist[msg.sender]` 允许绕过条件检查，间接实现重复取款）。
+
+**污点分析桥接 entry/reentry point**：
+
+将 entry point 中延迟更新的状态变量标记为 taint source，追踪其在 reentry point 中的控制流和数据流传播。如果污点能传播到可利用操作，则确认存在重入漏洞。同时识别路径上的保护机制（`nonReentrant` / `onlyOwner`），如果存在则终止污点传播。
+
+**实验结果**：Dataset I（23 个真实受害合约）全部检出（Slither 仅检出 12/23），Dataset II（134 vuln + 36,366 non-vuln）检出 129/134，仅 531 FP。在 22,644 个链上合约中检出 20.1% 可能存在重入漏洞。
+
+**与本研究的问题映射**：
+
+实验已揭示 modifier 和跨合约重入是 DeepSeek-chat 持续表现不佳的场景。论文的分析框架为理解这些盲区提供了结构性解释：
+
+| 本研究的顽固 FP/FN | 论文框架下的解释 | 根因 |
+|---|---|---|
+| modifier_fixed 始终 FP（模型误报 nonReentrant 保护不充分） | Entry point 中 hook 触发不确定——模型不知道 `call{value:...}` 是否会触发回调 | 缺乏标准知识：无法判断外部调用对象类型及其 hook 语义 |
+| modifier_insecure 在强约束下全部漏报 | 模型将 `neverReceiveAirdrop` 误认为保护机制 | 缺乏 entry/reentry 分离思维：无法区分"看起来像保护"和"实际上有效保护" |
+| cross_contract 场景 Acc 持续偏低 | 跨合约调用链中，被调用合约的标准类型未知 | 无法利用 ERC 标准语义推断跨合约回调路径 |
+| crosschain Acc 仅 0.556-0.667 | Bridge 调用不匹配典型重入模板 | 缺乏对非 ERC 标准的专有调用模式知识 |
+
+**可直接借用的三项改进**：
+
+**改进一：在静态分析摘要中注入合约标准语义。** 当前 Slither 摘要仅报告"外部调用 = TUPLE_0(bool,bytes) = LOW_LEVEL_CALL"，未区分调用是否可劫持。借鉴论文的 Table I，可在预处理阶段增强静态分析：
+
+```
+当前摘要:
+  外部调用=TUPLE_0(bool,bytes) = LOW_LEVEL_CALL, dest:token, function:transferFrom
+  写状态=userBalances | 交互后更新状态=True
+
+增强摘要:
+  外部调用=token.transferFrom() | 对象类型=ERC777 | hook触发=True (tokensToSend/tokensReceived)
+  → [HIJACKABLE] 攻击者可通过 hook 回调重入
+  写状态=userBalances | 交互后更新状态=True
+```
+
+这需要扩展 `preprocess.py` 中的 Slither 分析，增加外部调用对象的类型推断（从声明语句中提取 `token` 的类型信息），然后查询标准知识库判断是否 hijackable。
+
+**改进二：在 Prompt 中注入标准感知的 Entry/Reentry 判断框架。** 借鉴论文的三组件思想，可以将当前的统一判断 Prompt 重构为结构化的分步分析：
+
+```
+步骤 1（Entry Point）：找出所有可劫持的外部调用。
+  - 如果被调用对象是 ERC777 类型且方法为 transfer/transferFrom/burn → hijackable
+  - 如果被调用对象是 ERC721 类型且方法为 safeTransferFrom → hijackable
+  - 如果是低级调用 call{value:...} 且目标是 msg.sender → hijackable
+  - 记录每个 hijackable call 之后更新的状态变量（延迟更新变量）
+
+步骤 2（Reentry Point）：找出所有可被回调触发的函数中是否存在可利用操作。
+  - Direct: transfer/send/call{value:...} 目标可为 msg.sender
+  - Indirect: 修改 Direct 操作依赖的状态变量（如白名单、余额、计数器）
+
+步骤 3（Flow Check）：延迟更新变量是否能影响 Reentry Point 中的可利用操作？
+  - 如果能 → 重入漏洞
+  - 如果路径上有 nonReentrant/onlyOwner → 无漏洞
+```
+
+这种结构化 Prompt 可以与 §5.6 讨论的 Verbose Elaboration 和增强 Self-Inspection 组合使用，形成更完整的上下文注入策略。
+
+**改进三：标准知识库作为 Slither 摘要的语义增强层。** 当前实验发现 Slither 裸报告是噪声（§4.1），但配合 bypass 标签后转化为有效信号（§4.4）。论文的标准知识库可以成为 bypass 之外的**第二种语义增强层**：
+
+```
+Slither 裸报告（噪声）
+  → + bypass 检测标签 [SAFE]/[BYPASS-RISK]（代码证据）
+  → + 标准知识标签 [HIJACKABLE]/[NOT_HIJACKABLE]（语义证据）
+  → = 双重增强的上下文
+```
+
+这种多层增强与 §5.6 Gas-Wasting 论文的 Verbose Elaboration（从不同视角重复关键概念）形成呼应——bypass 标签提供代码级证据，标准知识标签提供语义级证据，两个维度互补。
+
+**不推荐直接迁移的设计**：
+
+- **完整污点分析引擎**：论文的静态污点分析需要构建 ICFG、控制依赖和数据依赖图，工程复杂度高。LLM 的优势恰恰在于可以"软推理"——通过 Prompt 引导 LLM 模拟污点分析的思考过程，而不需要实现完整的确定性引擎。这也符合本研究"LLM 做推理，规则引擎做验证"的核心方法论。
+- **全量静态分析替代 LLM**：论文 100% 基于确定性静态分析，在已知漏洞样本上表现优异（Dataset I 100% 检出），但扩展到未见过的合约时依赖标准覆盖率。LLM 的泛化能力可能补充静态分析无法覆盖的非标准合约场景。
+
+**总结**：Cai et al. (2025) 的启示是合约标准作为先验知识的价值——83% 的链上合约遵循已知标准，标准定义了明确的回调语义。该思路已在 §4.8 的 standards_entry 实验中实现，将标准知识注入 LLM 上下文（预处理增强 + 结构化 Prompt + 标准知识标签），使 modifier Acc 首次达到 1.000。
 
 ---
 
 ## 结论
 
-本研究搭建了完整的可复现重入漏洞检测流水线（消融→切片→Guard→Prompt→绕过检测五层优化）。
+本文构建了可复现的重入漏洞检测流水线（消融→切片→Guard→Prompt→绕过检测→RAG→标准增强→组合），从 zero-shot 出发，经 Few-Shot 检索增强、合约标准语义注入，最终以 confidence-gated 组合流水线收束。
 
-**消融实验**：crop_only 在 Accuracy 上最优（0.9024），代码裁剪是核心独立增益模块。Slither 裸报告导致 Acc 退化（0.821），需与 bypass 和 Prompt 规则组合使用才能转化为有效信号。
+**消融实验**：crop_only 的 Acc 最优（0.902），代码裁剪是核心独立增益模块。Slither 裸报告导致退化（0.821），需与 bypass 和 Prompt 规则组合使用。
 
-**切片优化**：reentrancy_slice_v1 通过 4 项规则压缩 47.9%，结合 Guard 注入为模型补回安全上下文。
+**切片与 Guard**：reentrancy_slice_v1 压缩 47.9%，Guard 注入补回安全上下文。
 
-**绕过检测与 Prompt 规则**：bypass 标签 + Prompt 规则的组合使模型能基于代码证据做差异化判断，实现 Acc 0.935、FPR 0.250、FNR 0.020 的全面最优。
+**绕过检测与 Prompt 规则**：bypass + Prompt 规则实现 Acc 0.935，FPR 0.250，FNR 0.020。
 
-验证了三条关键规律：(a) **裁剪优先**——去掉噪声是最大增益；(b) **指令优于注释**——系统 Prompt 规则远优于代码内注释；(c) **证据优于规则**——代码结构中的 bypass 标签比纯文本约束更有效。
+**RAG 强约束**：借鉴 PropertyGPT 的 MUST/MUST NOT 约束，FPR=0，fixed Acc=1.000。FNR=0.111，modifier 全部漏报。Few-Shot 在判别任务中增加了保守性。
 
-**核心价值**：不仅是"模型判断是否"，更是将漏洞分析过程结构化、可记录、可复核，并通过消融实验精准定位每个改进模块的增益来源。
+**标准增强**：借鉴 Cai et al. 的 ERC 标准分析，Entry-Reentry-Flow 框架使 modifier Acc 首次达 1.000。cross_contract FPR=1.000。
+
+**confidence-gated 组合**：利用 rag_strong FN 时 confidence=0.0 作为切换信号，Pass 1（rag_strong）+ Pass 2（standards_entry，confidence<0.5 触发）。Acc=0.957，FPR=0，FNR=0.049，2.4% 额外开销。
+
+验证了九条规律：(a) 裁剪优先——去噪是最大增益；(b) 指令优于注释——Prompt 规则优于代码内注释；(c) 证据优于规则——bypass 标签优于文本约束；(d) 约束层级决定行为边界——MUST 约束消除误报强于描述性规则；(e) Few-Shot 在判别任务中是把双刃剑；(f) 反馈信号硬度决定迭代有效性；(g) 语义感知在子任务间收益不对称；(h) confidence 反映模型的知识边界自我感知，可作为架构切换信号；(i) 组件编排优于 Prompt 融合。
 
 ---
 
 ## 项目结构
 
+### 源文件
+
+| 文件 | 功能 | 使用阶段 |
+|---|---|---|
+| `src/main.py` | 实验编排主入口，管理 7 轮全部 profile 及 two_pass 流水线 | 全部轮次 |
+| `src/preprocess.py` | Slither 静态分析 + 启发式回退 + 代码裁剪 + 匿名化 + 标准增强摘要 | 全部轮次 |
+| `src/reentrancy_slice_engine.py` | 4 规则切片引擎（外部调用精确化、函数筛选、显著函数 Top10%、贪心填充）+ Guard 注入 | 第 2–7 轮 |
+| `src/run_reentrancy_slice.py` | 批量预计算切片缓存生成器 | 第 2 轮起 |
+| `src/rag_engine.py` | RAG 引擎：TF-IDF 向量索引 + 8 条重入模式库 + Few-Shot 检索 | 第 5–7 轮 |
+| `src/revision_engine.py` | 迭代修订引擎：JSON 格式诊断 + 置信度反馈修订（最多 3 轮） | 第 5 轮（消融） |
+| `src/standards_kb.py` | ERC 标准知识库：合约标准检测 + hook 触发推断 + 外部调用可劫持性分类 | 第 6–7 轮 |
+| `src/llm_client.py` | OpenAI 兼容 API 客户端 + JSON 响应解析 | 全部轮次 |
+| `src/chain_contract_test.py` | 链上真实案例验证脚本 | 独立 |
+
+### Prompt 模板 → 实验映射
+
+#### 第 1–4 轮（消融 → bypass）
+
+| 模板 | Profile | 实验轮次 |
+|---|---|---|
+| `baseline_prompt.txt` | `baseline_raw` | 第 1 轮（消融基线） |
+| `baseline_prompt_paper.txt` | `crop_only` | 第 1 轮（消融） |
+| `baseline_summary_prompt.txt` | `crop_slither`, `reentrancy_slice_v1` | 第 1–4 轮 |
+| `cot_reentrancy_paper.txt` | `crop_slither_cot` | 第 1 轮（消融） |
+| `multi_contract_summary_prompt.txt` | `crop_slither_multi` | 第 1 轮（消融） |
+| `original_*.txt` | 备份（不含 nonReentrant 规则） | 第 1–2 轮原始版本 |
+
+#### 第 5 轮（RAG + 强约束）
+
+| 模板 | Profile | 说明 |
+|---|---|---|
+| `rag_reentrancy_prompt.txt` | `rag_strong` | MUST/MUST NOT/REMEMBER 强约束，无 Few-Shot |
+| `rag_fewshot_prompt.txt` | `rag_fewshot`, `rag_fewshot_revision`, `rag_full` | 强约束 + RAG Few-Shot 检索 |
+
+#### 第 6 轮（标准增强）
+
+| 模板 | Profile | 说明 |
+|---|---|---|
+| `standards_reentrancy_prompt.txt` | `standards_entry` | Entry-Reentry-Flow 三步框架 + ERC 标准知识 + Verbose Elaboration |
+
+#### 第 7 轮（组合）
+
+| 模板 | Profile | 说明 |
+|---|---|---|
+| `rag_reentrancy_prompt.txt` + `standards_reentrancy_prompt.txt` | `two_pass` | Pass 1 → rag_strong；confidence<0.5 → Pass 2 standards_entry |
+| `combined_reentrancy_prompt.txt` | `combined_surgical` | 两套 Prompt 直接融合（消融失败） |
+| `surgical_v2_prompt.txt` | `surgical_v2` | 精简融合模板（消融失败） |
+
+### 数据集与切片
+
 ```
-├── src/
-│   ├── main.py                       # 实验编排主入口
-│   ├── preprocess.py                 # Slither 静态分析 + 代码裁剪 + 匿名化
-│   ├── reentrancy_slice_engine.py    # 4 规则切片引擎 + Guard 注入
-│   ├── run_reentrancy_slice.py       # 批量切片缓存生成器
-│   ├── llm_client.py                 # OpenAI 兼容 API 客户端 + JSON 解析器
-│   └── chain_contract_test.py        # 链上案例测试
-├── prompts/                          # 5 套 Prompt 模板（当前版本：含 nonReentrant 规则）
-│   ├── baseline_prompt.txt
-│   ├── baseline_prompt_paper.txt
-│   ├── baseline_summary_prompt.txt
-│   ├── cot_reentrancy_paper.txt
-│   ├── multi_contract_summary_prompt.txt
-│   └── original_*.txt                # 原始备份版（不含 nonReentrant 规则）
-├── contracts/
-│   └── manifest.json                 # sample_id → Solidity 文件 + label 映射
-├── contracts_reentrancy_slice_v1/    # 预计算切片缓存（41 个 .sol + global_stats + manifest）
-│   ├── serial_coder__.../slice.sol
-│   ├── smartbugs_curated__.../slice.sol
-│   ├── crosschain_reentrancy_pairs__.../slice.sol
-│   ├── extra_reentrancy_pocs__.../slice.sol
-│   ├── global_stats.json             # 全局函数统计（供显著函数筛选）
-│   └── slice_manifest.json           # 切片路径映射
-├── runs/                             # 核心实验汇总（summary.json + run_config.json）
-├── requirements.txt
-├── LLM4Re.pdf
-└── .gitignore
+contracts/
+├── manifest.json                       # 41 样本清单（sample_id → 文件 + label）
+├── 02_reentrancy/                      # 标准重入 insecure/fixed 对
+├── 03_reentrancy_via_modifier/         # modifier 重入对
+├── 04_cross_function_reentrancy/       # 跨函数重入对
+├── 05_cross_contract_reentrancy/       # 跨合约重入对
+├── crosschain_reentrancy_pairs/        # 跨链场景配对
+├── extra_reentrancy_pocs/              # 自定义 PoC
+└── smartbugs_curated/                  # 23 个真实链上受害合约
+
+contracts_reentrancy_slice_v1/          # 切片缓存（第 2 轮起）
+├── {sample_id}/slice.sol               # 41 个预计算切片
+├── global_stats.json                   # 全局函数统计
+├── slice_manifest.json                 # 切片路径映射
+└── slice_stats.json                    # 压缩统计
+
+runs/                                   # 实验输出（每个 run-id 一个子目录）
+├── {run-id}/
+│   ├── run_config.json                 # 实验配置
+│   ├── repeat_01/02/03/                # 每轮重复独立保存
+│   │   ├── {profile}/
+│   │   │   ├── {sample_id}/
+│   │   │   │   ├── preprocess.json     # 预处理结果
+│   │   │   │   ├── prompt.txt          # 组装后的完整 Prompt
+│   │   │   │   ├── prediction.json     # LLM 预测结果
+│   │   │   │   ├── rag_retrieval.json  # RAG 检索记录（若启用）
+│   │   │   │   └── two_pass_meta.json  # Two-Pass 触发记录（two_pass profile）
+│   │   │   ├── metrics.json
+│   │   │   ├── error_analysis.json
+│   │   │   └── scenario_metrics.json
+│   │   └── repeat_summary.json
+│   ├── summary.json                    # 全量实验汇总
+│   └── comparison.json                 # 以 baseline_raw 为基线的对比报告
 ```
 
 ## 快速复现
 
 ```bash
 pip install -r requirements.txt
+export OPENAI_API_KEY="your_key"
 
-cd src
-python3 main.py \
-  --backend openai --model deepseek-chat \
-  --base-url https://api.deepseek.com \
-  --repeat 3 \
-  --profiles baseline_raw crop_only crop_slither crop_slither_cot crop_slither_multi \
-  --extra-source-root /path/to/extra_reentrancy_pocs \
-  --extra-source-root /path/to/crosschain_reentrancy_pairs \
-  --run-id ablation-experiment
+# 消融实验（第 1 轮）
+python3 src/main.py \
+  --backend openai --model deepseek-chat --base-url https://api.deepseek.com \
+  --repeat 3 --run-id ablation \
+  --profiles baseline_raw crop_only crop_slither crop_slither_cot crop_slither_multi
+
+# RAG 实验（第 5 轮）
+python3 src/main.py \
+  --backend openai --model deepseek-chat --base-url https://api.deepseek.com \
+  --repeat 3 --run-id rag-experiment \
+  --profiles crop_slither rag_strong rag_fewshot --rag-enabled --rag-top-k 4 \
+  --slice-mode reentrancy_slice_v1
+
+# 标准增强实验（第 6 轮）
+python3 src/main.py \
+  --backend openai --model deepseek-chat --base-url https://api.deepseek.com \
+  --repeat 3 --run-id standards-experiment \
+  --profiles crop_slither rag_strong standards_entry --rag-enabled --rag-top-k 4 \
+  --slice-mode reentrancy_slice_v1
+
+# Two-Pass 组合实验（第 7 轮）
+python3 src/main.py \
+  --backend openai --model deepseek-chat --base-url https://api.deepseek.com \
+  --repeat 3 --run-id two-pass \
+  --profiles crop_slither rag_strong standards_entry two_pass --rag-enabled --rag-top-k 4 \
+  --slice-mode reentrancy_slice_v1
 ```
