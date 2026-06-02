@@ -589,177 +589,23 @@ Acc=0.957，此前 FPR=0 的最高 Acc 为 rag_strong 的 0.904，提升了 5.3 
 ### 5.5 未来工作
 
 - **更强模型验证**：在 GPT-4o 或 DeepSeek-v4 系列上复现核心实验链路，探测 modifier 语义理解的上限。
-- **链上合约验证**：将 The DAO、Lendf.Me 等真实主网受害合约纳入流水线，检验方法的真实泛化能力。
-- **Self-consistency 机制**：对低置信度预测采用多次采样加固，在不改变模型本身的前提下提升判定稳定性。
-- **数据集扩展**：当前仅 8 个 paired fixed/insecure 样本，扩充此类对照样本将显著提升 FPR/FNR 的统计效力。
-- **RAG 探索 ✅**：检索增强生成方案已在本研究第 5 轮实验中实现（见 §4.7），验证了强约束 Prompt + Few-Shot 示例的组合效果。FPR 归零的成果证明了 RAG 思路的价值，但也暴露了 Few-Shot 在判别任务中的双刃剑效应。未来方向：(a) 优化检索的正负样本平衡策略，(b) 引入 SWC Registry、CVE 记录等更大规模的外部知识源，(c) 探索针对 modifier 重入场景的专用 Few-Shot 示例设计。
+- **链上合约验证**：将 The DAO、Lendf.Me 等真实主网受害合约纳入流水线，检验泛化能力。
+- **数据集扩展**：当前仅 8 个 paired fixed/insecure 样本，扩充对照样本可提升 FPR/FNR 统计效力。
+- **RAG 检索优化**：优化正负样本平衡策略；引入 SWC Registry、CVE 记录等外部知识源；设计 modifier 重入场景专用 Few-Shot 示例。
 
-### 5.6 相关工作分析与借鉴：Gas-Wasting Code Smells 论文的启示
+### 5.6 相关工作：Gas-Wasting Code Smells（Jiang et al., IEEE TSE 2024）
 
-Jiang et al. (2024) 在 *IEEE TSE* 上发表的"Unearthing Gas-Wasting Code Smells in Smart Contracts with Large Language Models"提出了一个系统化的 LLM 驱动智能合约代码气味检测流水线。虽然其任务目标（Gas 浪费检测）与本研究的重入漏洞检测不同，但其 **Prompt 框架设计方法论** 和 **迭代发现流程** 对本研究具有直接的借鉴价值。
+Jiang et al. 提出了四模块 Prompt 框架（Introduction & Problem Formulation / Few-Shot Examples / Input Codes / Self-Inspection），并由四个设计动机驱动：Few-Shot Examples（无需微调）、Chain of Thought（分步推理）、Verbose Elaboration（不同视角重复关键概念）、Self-Inspection（多维反思）。其 8 轮迭代发现流程通过人工验证实现"发现→验证→分类→反馈"闭环。
 
-**Gas-Wasting 论文的核心设计——四模块 Prompt 框架**：
+本文借鉴了其中两项设计：(a) Verbose Elaboration——在 §4.8/§4.9 的 Prompt 首尾以不同表述重复关键规则；(b) Self-Inspection 增强——在 `standards_reentrancy_prompt.txt` 中扩展为三维反思（代码证据 + 错误原因 + Prompt 歧义）。Few-Shot Block 的思路通过 §4.7 的 RAG 引擎实现（动态检索替代静态精选）。
 
-该论文将 Prompt 设计从单一文本提升为**复合结构**，由四个具有独立设计动机的模块组成：
+人工验证和分轮实验的设计因成本较高未直接迁移——bypass 标签的自动检测（§4.4）证明是更可扩展的替代方案。
 
-| 模块 | 设计动机 | 内容 |
-|---|---|---|
-| **Block 1: Introduction & Problem Formulation** | CoT + Verbose Elaboration | 注入领域知识、两步解释关键概念（开头一次 + 结尾用不同视角重复一次） |
-| **Block 2: Few-Shot Example Block** | 示例引导 | 精选的 Gas 浪费代码气味及解释 |
-| **Block 3: Input Codes Block** | 代码输入 | 函数级贪心采样的合约代码 |
-| **Block 4: Self-Inspection Block** | 自我反思 | 三步：(a) 可读性/可维护性/安全性 tradeoff 评分；(b) 下次如何改进；(c) Prompt 中是否有歧义 |
+### 5.7 相关工作：合约标准静态污点分析（Cai et al., IEEE TIFS 2025）
 
-**四个设计动机**：
+Cai et al. 将重入漏洞检测形式化为三个子任务：Entry Point Identification（利用 ERC 标准判断外部调用是否触发 hook）、Reentry Point Identification（识别直接/间接可利用操作）、State Variable Flow Tracking（污点分析追踪延迟更新变量→可利用操作的传播）。其核心洞察是：大多数链上合约遵循 ERC 标准，标准明确定义了回调语义，可作为"免费先验知识"注入检测流程。在 23 个真实受害合约上全部检出（Slither 仅 12/23）。
 
-1. **Few-Shot Examples (FSE)**：提供精选示例引导任务完成，资源高效（无需微调）
-2. **Chain of Thought (CoT)**：分步推理引出更结构化的输出，但作者也警示了 CoT 的忠实性问题——解释未必反映真实推理过程
-3. **Verbose Elaboration**：从不同视角重复解释关键概念，大幅降低 LLM 误解 Prompt 意图的风险
-4. **Self-Inspection**：作为 CoT 的增强形式，要求 LLM 从多个维度反思自己的输出质量和推理过程
-
-**8 轮迭代发现流程**：每轮采样 10 个合约，人工验证 LLM 报告的结果，将验证通过的新发现纳入分类体系，再进入下一轮——形成"发现→验证→分类→反馈"的闭环。
-
-**与本研究的交叉映射**：
-
-| Gas-Wasting 论文设计 | 本研究现状 | 可借鉴方向 |
-|---|---|---|
-| **Self-Inspection Block** | CoT 模板有步骤 7（自我审查），但较简单：仅 3 个问题 | 扩展为 tradeoff 评分 + 改进建议 + Prompt 歧义检测的三维反思 |
-| **Verbose Elaboration** | 有 nonReentrant 规则区块，但仅描述一次 | 在 Prompt 开头和结尾用不同表述重复关键判定规则，降低 LLM 的误解概率 |
-| **Few-Shot Example Block** | RAG 动态检索示例 | 增加人工精选的"锚定示例"——经过验证的高质量正负对照，作为 RAG 检索的补充基准 |
-| **迭代轮次 + 人工验证** | repeat=3 仅做统计重复，无人工验证环节 | 引入人工复核机制：对高不一致样本（3 次预测结果不统一）进行人工判定，反馈结果用于改进 Prompt |
-| **8 轮渐进发现** | 单轮全量实验 | 分轮次实验，每轮聚焦前一轮的失败案例，形成针对性改进循环 |
-| **Entropy 多样性度量** | 仅报告 Accuracy/FPR/FNR | 增加模型输出的多样性分析，评估是否存在系统性的类别偏向 |
-
-**当前研究可直接采纳的两项低成本改进**：
-
-**改进一：Verbose Elaboration 的双视角规则注入。** 当前 Prompt 模板中的 nonReentrant 规则区块仅在开头出现一次。借鉴 Gas-Wasting 论文的 Verbose Elaboration 策略，可以在 Prompt 末尾以"重要提醒"的形式，用不同的表述再次强调关键判定规则。例如：
-
-```
-开头（描述性）：nonReentrant 工作原理：执行函数体前 locked=true 上锁，require(!locked) 阻止重入
-结尾（指令性）：再次提醒：看到 nonReentrant/noReentrant → 合约已受重入锁保护 → 必须判定为 safe
-```
-
-这与我们在 §5.2 中发现的"指令通道 ≠ 内容通道"规律高度契合——Verbose Elaboration 本质上是用双重通道传递同一信息，增加指令被模型遵循的概率。
-
-**改进二：增强 Self-Inspection。** 当前 CoT 模板的步骤 7 仅有 3 个审查问题。借鉴 Gas-Wasting 论文的三维反思，可扩展为：
-
-```
-(a) 对本次判断给出 confidence breakdown：代码证据充分度 / 语义理解确定度 / 外部依赖可靠性
-(b) 如果这次判断有误，最可能的原因是什么？
-(c) Prompt 中是否有表述不清的地方？如果有，请指出
-```
-
-问题 (c) 尤其重要——它不仅帮助模型反思，还为 Prompt 模板的迭代优化提供了来自模型视角的直接反馈信号。
-
-**不推荐直接迁移的设计**：
-
-- **人工验证重度依赖**：Gas-Wasting 论文依赖两名独立审查者进行人工验证（19.32% 初始分歧率），这在重入检测的大规模部署中不可持续。bypass 标签的自动检测机制（§4.4）已在本研究中证明是更可扩展的替代方案。
-- **8 轮分轮实验**：Gas-Wasting 论文需要人工介入每轮的结果筛选。本研究的 `repeat=3` 统计重复已通过均值 ± 标准差提供了足够的统计稳定性，分轮实验的额外复杂度在当前规模下收益有限。
-
-**总结**：Gas-Wasting 论文对本文的主要启示是 Prompt 设计的模块化思维——将 Prompt 视为由独立设计动机驱动的可组合结构，而非整体文本。Verbose Elaboration 和改进 Self-Inspection 已在 §4.8 和 §4.9 的 Prompt 设计中得到应用。
-
-### 5.7 相关工作分析与借鉴：基于合约标准的静态污点分析重入检测
-
-Cai et al. (2025) 在 *IEEE TIFS* 上发表的"Detecting Reentrancy Vulnerabilities for Solidity Smart Contracts With Contract Standards-Based Rules"提出了基于合约标准的静态分析框架。其将合约标准作为先验知识注入检测流程的思想，为本研究的 LLM 方法提供了上下文增强方向——尤其是解决 modifier 和跨合约重入的漏报问题。
-
-**论文核心思路——三组件框架**：
-
-该论文将重入漏洞检测重新形式化为三个子任务：
-
-| 组件 | 功能 | 关键技术 |
-|---|---|---|
-| **Entry Point Identification** | 识别包含"可劫持外部调用"的函数 | 利用 ERC 标准知识库（Table I）判断外部调用是否能触发攻击者 hook |
-| **Reentry Point Identification** | 识别包含"可利用操作"的函数 | 利用标准定义的 transfer 方法（Table II）识别直接/间接可利用操作 |
-| **State Variable Flow Tracking** | 追踪延迟更新的状态变量流向 | 静态污点分析：taint source（延迟更新变量）→ taint sink（可利用操作） |
-
-**标准知识驱动的切入点识别（Table I）**：
-
-该论文的核心洞察是：当前区块链生态中大多数智能合约遵循技术标准（ERC20/721/777/1155），这些标准明确定义了哪些函数会触发回调 hook。例如：
-
-| 标准 | 可劫持的外部调用 | 回调机制 |
-|---|---|---|
-| ERC20 | `transfer()`, `transferFrom()` | 标准 transfer 不触发 hook，但特定实现可重写 |
-| ERC721 | `safeTransferFrom()` | 触发 `onERC721Received` hook |
-| ERC777 | `transfer()`, `transferFrom()`, `burn()` | 触发 `tokensToSend` / `tokensReceived` hook |
-| ERC1155 | `safeTransferFrom()`, `safeBatchTransferFrom()` | 触发 `onERC1155Received` hook |
-
-通过识别外部调用对象的类型（如 `Token` 的类型为 `ERC777`），可以**在不确定被调用方具体实现的情况下**，仅凭标准语义推断该调用是否可劫持。
-
-**可利用操作的二层分类（Table II）**：
-
-- **Direct exploitable**：直接将加密货币转移给攻击者（如 `.call{value:}()`, `.transfer()`, `ERC20.transfer()`）。通过数据依赖分析判断 transfer 目标是否为 `msg.sender`。
-- **Indirect exploitable**：操纵直接可利用操作所依赖的状态变量（如 `delete Exist[msg.sender]` 允许绕过条件检查，间接实现重复取款）。
-
-**污点分析桥接 entry/reentry point**：
-
-将 entry point 中延迟更新的状态变量标记为 taint source，追踪其在 reentry point 中的控制流和数据流传播。如果污点能传播到可利用操作，则确认存在重入漏洞。同时识别路径上的保护机制（`nonReentrant` / `onlyOwner`），如果存在则终止污点传播。
-
-**实验结果**：Dataset I（23 个真实受害合约）全部检出（Slither 仅检出 12/23），Dataset II（134 vuln + 36,366 non-vuln）检出 129/134，仅 531 FP。在 22,644 个链上合约中检出 20.1% 可能存在重入漏洞。
-
-**与本研究的问题映射**：
-
-实验已揭示 modifier 和跨合约重入是 DeepSeek-chat 持续表现不佳的场景。论文的分析框架为理解这些盲区提供了结构性解释：
-
-| 本研究的顽固 FP/FN | 论文框架下的解释 | 根因 |
-|---|---|---|
-| modifier_fixed 始终 FP（模型误报 nonReentrant 保护不充分） | Entry point 中 hook 触发不确定——模型不知道 `call{value:...}` 是否会触发回调 | 缺乏标准知识：无法判断外部调用对象类型及其 hook 语义 |
-| modifier_insecure 在强约束下全部漏报 | 模型将 `neverReceiveAirdrop` 误认为保护机制 | 缺乏 entry/reentry 分离思维：无法区分"看起来像保护"和"实际上有效保护" |
-| cross_contract 场景 Acc 持续偏低 | 跨合约调用链中，被调用合约的标准类型未知 | 无法利用 ERC 标准语义推断跨合约回调路径 |
-| crosschain Acc 仅 0.556-0.667 | Bridge 调用不匹配典型重入模板 | 缺乏对非 ERC 标准的专有调用模式知识 |
-
-**可直接借用的三项改进**：
-
-**改进一：在静态分析摘要中注入合约标准语义。** 当前 Slither 摘要仅报告"外部调用 = TUPLE_0(bool,bytes) = LOW_LEVEL_CALL"，未区分调用是否可劫持。借鉴论文的 Table I，可在预处理阶段增强静态分析：
-
-```
-当前摘要:
-  外部调用=TUPLE_0(bool,bytes) = LOW_LEVEL_CALL, dest:token, function:transferFrom
-  写状态=userBalances | 交互后更新状态=True
-
-增强摘要:
-  外部调用=token.transferFrom() | 对象类型=ERC777 | hook触发=True (tokensToSend/tokensReceived)
-  → [HIJACKABLE] 攻击者可通过 hook 回调重入
-  写状态=userBalances | 交互后更新状态=True
-```
-
-这需要扩展 `preprocess.py` 中的 Slither 分析，增加外部调用对象的类型推断（从声明语句中提取 `token` 的类型信息），然后查询标准知识库判断是否 hijackable。
-
-**改进二：在 Prompt 中注入标准感知的 Entry/Reentry 判断框架。** 借鉴论文的三组件思想，可以将当前的统一判断 Prompt 重构为结构化的分步分析：
-
-```
-步骤 1（Entry Point）：找出所有可劫持的外部调用。
-  - 如果被调用对象是 ERC777 类型且方法为 transfer/transferFrom/burn → hijackable
-  - 如果被调用对象是 ERC721 类型且方法为 safeTransferFrom → hijackable
-  - 如果是低级调用 call{value:...} 且目标是 msg.sender → hijackable
-  - 记录每个 hijackable call 之后更新的状态变量（延迟更新变量）
-
-步骤 2（Reentry Point）：找出所有可被回调触发的函数中是否存在可利用操作。
-  - Direct: transfer/send/call{value:...} 目标可为 msg.sender
-  - Indirect: 修改 Direct 操作依赖的状态变量（如白名单、余额、计数器）
-
-步骤 3（Flow Check）：延迟更新变量是否能影响 Reentry Point 中的可利用操作？
-  - 如果能 → 重入漏洞
-  - 如果路径上有 nonReentrant/onlyOwner → 无漏洞
-```
-
-这种结构化 Prompt 可以与 §5.6 讨论的 Verbose Elaboration 和增强 Self-Inspection 组合使用，形成更完整的上下文注入策略。
-
-**改进三：标准知识库作为 Slither 摘要的语义增强层。** 当前实验发现 Slither 裸报告是噪声（§4.1），但配合 bypass 标签后转化为有效信号（§4.4）。论文的标准知识库可以成为 bypass 之外的**第二种语义增强层**：
-
-```
-Slither 裸报告（噪声）
-  → + bypass 检测标签 [SAFE]/[BYPASS-RISK]（代码证据）
-  → + 标准知识标签 [HIJACKABLE]/[NOT_HIJACKABLE]（语义证据）
-  → = 双重增强的上下文
-```
-
-这种多层增强与 §5.6 Gas-Wasting 论文的 Verbose Elaboration（从不同视角重复关键概念）形成呼应——bypass 标签提供代码级证据，标准知识标签提供语义级证据，两个维度互补。
-
-**不推荐直接迁移的设计**：
-
-- **完整污点分析引擎**：论文的静态污点分析需要构建 ICFG、控制依赖和数据依赖图，工程复杂度高。LLM 的优势恰恰在于可以"软推理"——通过 Prompt 引导 LLM 模拟污点分析的思考过程，而不需要实现完整的确定性引擎。这也符合本研究"LLM 做推理，规则引擎做验证"的核心方法论。
-- **全量静态分析替代 LLM**：论文 100% 基于确定性静态分析，在已知漏洞样本上表现优异（Dataset I 100% 检出），但扩展到未见过的合约时依赖标准覆盖率。LLM 的泛化能力可能补充静态分析无法覆盖的非标准合约场景。
-
-**总结**：Cai et al. (2025) 的启示是合约标准作为先验知识的价值——83% 的链上合约遵循已知标准，标准定义了明确的回调语义。该思路已在 §4.8 的 standards_entry 实验中实现，将标准知识注入 LLM 上下文（预处理增强 + 结构化 Prompt + 标准知识标签），使 modifier Acc 首次达到 1.000。
+本文将该框架适配到 LLM 上下文（§4.8）：(a) 预处理增强——通过 `standards_kb.py` 检测标准类型，对外部调用标注 `[HIJACKABLE]`；(b) Prompt 结构化——将三组件转化为 Entry-Reentry-Flow 三步判定 Prompt；(c) 标准知识标签——作为 bypass 标签之外的语义增强层。完整污点分析引擎因工程复杂度未直接迁移，转而利用 LLM 的推理能力模拟污点分析的思考过程。
 
 ---
 
